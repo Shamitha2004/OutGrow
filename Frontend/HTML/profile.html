@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OutGrow — Profile</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&family=Satoshi:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+    :root {
+      --bg:        #09090f;
+      --surface:   #111118;
+      --surface2:  #18181f;
+      --border:    rgba(255,255,255,0.07);
+      --green:     #22c55e;
+      --green-dim: #166534;
+      --glow:      rgba(34,197,94,0.18);
+      --amber:     #f59e0b;
+      --blue:      #3b82f6;
+      --rose:      #f43f5e;
+      --purple:    #a855f7;
+      --cyan:      #06b6d4;
+      --text:      #f0f0f4;
+      --muted:     #6b7280;
+    }
+
+    html { scroll-behavior:smooth; }
+    body {
+      font-family:'Satoshi',sans-serif;
+      background:var(--bg); color:var(--text);
+      min-height:100vh; overflow-x:hidden;
+    }
+
+    body::before {
+      content:''; position:fixed; inset:0;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events:none; z-index:0;
+    }
+
+    .ambient { position:fixed; pointer-events:none; z-index:0; border-radius:50%; filter:blur(120px); opacity:0.25; }
+    .ambient-1 { width:500px; height:500px; background:radial-gradient(circle,#22c55e40,transparent 70%); top:-150px; left:-150px; animation:drift1 18s ease-in-out infinite alternate; }
+    .ambient-2 { width:400px; height:400px; background:radial-gradient(circle,#a855f730,transparent 70%); bottom:-100px; right:-80px; animation:drift2 22s ease-in-out infinite alternate; }
+    @keyframes drift1 { to{transform:translate(60px,80px);} }
+    @keyframes drift2 { to{transform:translate(-40px,-60px);} }
+
+    /* ── NAVBAR ── */
+    .navbar {
+      position:sticky; top:0; z-index:100;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 40px;
+      background:rgba(9,9,15,0.85);
+      backdrop-filter:blur(20px);
+      border-bottom:1px solid var(--border);
+    }
+    .logo {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:1.5rem; font-weight:900; color:var(--green);
+      letter-spacing:-0.5px; display:flex; align-items:center; gap:8px;
+    }
+    .logo span { color:var(--text); }
+    .nav-links { display:flex; align-items:center; gap:4px; }
+    .nav-links a {
+      padding:7px 16px; border-radius:8px;
+      color:var(--muted); font-size:0.88rem; font-weight:500;
+      text-decoration:none; transition:all 0.2s;
+    }
+    .nav-links a:hover { color:var(--text); background:var(--surface2); }
+    .nav-links a.active { color:var(--green); }
+    .logout-btn {
+      padding:9px 18px; border-radius:10px;
+      background:none; border:1px solid var(--border);
+      color:var(--muted); font-size:0.85rem; cursor:pointer;
+      transition:all 0.2s; font-family:'Satoshi',sans-serif;
+    }
+    .logout-btn:hover { color:var(--rose); border-color:rgba(244,63,94,0.3); }
+
+    /* ── MAIN ── */
+    main {
+      position:relative; z-index:1;
+      max-width:900px; margin:0 auto;
+      padding:40px 40px 80px;
+    }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ── HERO CARD ── */
+    .profile-hero {
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:24px; padding:40px;
+      margin-bottom:20px;
+      position:relative; overflow:hidden;
+      animation:fadeUp 0.5s ease both;
+    }
+    .profile-hero::before {
+      content:'';
+      position:absolute; top:0; left:0; right:0; height:3px;
+      background:linear-gradient(90deg,var(--green),var(--blue),var(--purple));
+    }
+    .profile-hero-inner {
+      display:flex; align-items:center; gap:28px;
+    }
+
+    /* Avatar */
+    .avatar-wrap { position:relative; flex-shrink:0; }
+    .avatar {
+      width:88px; height:88px; border-radius:50%;
+      background:linear-gradient(135deg,var(--green),#16a34a);
+      display:flex; align-items:center; justify-content:center;
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:2.4rem; font-weight:900; color:#000;
+      border:3px solid rgba(34,197,94,0.3);
+      box-shadow:0 0 24px rgba(34,197,94,0.2);
+    }
+    .avatar-ring {
+      position:absolute; inset:-6px;
+      border-radius:50%;
+      border:2px solid transparent;
+      border-top-color:var(--green);
+      border-right-color:var(--green);
+      animation:spin 3s linear infinite;
+    }
+    @keyframes spin { to{transform:rotate(360deg);} }
+
+    .profile-info { flex:1; min-width:0; }
+    .profile-name {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:2rem; font-weight:900;
+      letter-spacing:-1px; margin-bottom:4px;
+    }
+    .profile-email { color:var(--muted); font-size:0.88rem; margin-bottom:14px; }
+
+    .level-badge {
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 16px; border-radius:100px;
+      font-size:0.8rem; font-weight:700;
+      text-transform:uppercase; letter-spacing:0.5px;
+      margin-bottom:16px;
+    }
+    .level-beginner     { background:rgba(59,130,246,0.15); color:var(--blue);   border:1px solid rgba(59,130,246,0.3); }
+    .level-intermediate { background:rgba(245,158,11,0.15); color:var(--amber);  border:1px solid rgba(245,158,11,0.3); }
+    .level-advanced     { background:rgba(34,197,94,0.15);  color:var(--green);  border:1px solid rgba(34,197,94,0.3); }
+
+    .join-date { font-size:0.78rem; color:var(--muted); }
+    .join-date span { color:var(--text); font-weight:500; }
+
+    /* Edit button */
+    .btn-edit {
+      padding:9px 20px; border-radius:10px;
+      background:var(--surface2); border:1px solid var(--border);
+      color:var(--text); font-size:0.85rem; font-weight:600;
+      cursor:pointer; transition:all 0.2s;
+      font-family:'Satoshi',sans-serif; flex-shrink:0;
+    }
+    .btn-edit:hover { border-color:rgba(255,255,255,0.2); background:rgba(255,255,255,0.05); }
+
+    /* ── STATS GRID ── */
+    .stats-grid {
+      display:grid; grid-template-columns:repeat(4,1fr); gap:14px;
+      margin-bottom:20px;
+      animation:fadeUp 0.5s ease 0.1s both;
+    }
+    .stat-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:16px; padding:20px 16px; text-align:center;
+      transition:all 0.2s;
+    }
+    .stat-card:hover { border-color:rgba(255,255,255,0.12); transform:translateY(-3px); }
+    .stat-emoji { font-size:1.6rem; margin-bottom:8px; }
+    .stat-value {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:2rem; font-weight:900; line-height:1;
+      margin-bottom:4px;
+    }
+    .stat-label { font-size:0.75rem; color:var(--muted); }
+    .sv-green  { color:var(--green); }
+    .sv-amber  { color:var(--amber); }
+    .sv-blue   { color:var(--blue); }
+    .sv-purple { color:var(--purple); }
+
+    /* ── 2-COL GRID ── */
+    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
+
+    /* ── PANEL ── */
+    .panel {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:18px; padding:24px;
+      animation:fadeUp 0.5s ease 0.15s both;
+    }
+    .panel-title {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:0.75rem; font-weight:700;
+      text-transform:uppercase; letter-spacing:1.5px;
+      color:var(--muted); margin-bottom:20px;
+    }
+
+    /* XP progress */
+    .xp-row { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; }
+    .xp-big {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:2.4rem; font-weight:900;
+    }
+    .xp-max { color:var(--muted); font-size:0.85rem; }
+    .bar-track {
+      height:8px; background:var(--surface2);
+      border-radius:100px; overflow:hidden;
+      border:1px solid var(--border); margin-bottom:6px;
+    }
+    .bar-fill {
+      height:100%; border-radius:100px;
+      transition:width 1.4s cubic-bezier(0.34,1,0.64,1);
+    }
+    .bar-green  { background:linear-gradient(90deg,var(--green),#4ade80); }
+    .bar-purple { background:linear-gradient(90deg,var(--purple),#c084fc); }
+    .bar-labels { display:flex; justify-content:space-between; font-size:0.72rem; color:var(--muted); }
+
+    /* comfort ring */
+    .ring-wrap { display:flex; align-items:center; gap:20px; margin-top:20px; padding-top:20px; border-top:1px solid var(--border); }
+    .ring-svg circle { transition:stroke-dashoffset 1.4s cubic-bezier(0.34,1,0.64,1); }
+    .ring-info {}
+    .ring-num {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:1.8rem; font-weight:900;
+    }
+    .ring-sub { font-size:0.75rem; color:var(--muted); margin-top:2px; }
+
+    /* streak week */
+    .week-grid { display:flex; gap:6px; }
+    .week-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; }
+    .week-bar {
+      width:100%; height:40px; border-radius:8px;
+      background:var(--surface2); border:1px solid var(--border);
+      transition:all 0.4s;
+    }
+    .week-bar.done  { background:rgba(34,197,94,0.35); border-color:rgba(34,197,94,0.3); }
+    .week-bar.today { background:var(--green); border-color:var(--green); box-shadow:0 0 10px rgba(34,197,94,0.4); }
+    .week-lbl { font-size:0.65rem; color:var(--muted); }
+    .streak-best { margin-top:14px; padding:12px 14px; border-radius:10px; background:var(--surface2); border:1px solid var(--border); font-size:0.82rem; color:var(--muted); display:flex; justify-content:space-between; }
+    .streak-best span { color:var(--amber); font-weight:700; }
+
+    /* ── BADGES PANEL ── */
+    .badges-panel { animation:fadeUp 0.5s ease 0.2s both; }
+    .badges-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+    .badges-earned-count {
+      padding:4px 12px; border-radius:100px;
+      background:rgba(245,158,11,0.1); color:var(--amber);
+      font-size:0.78rem; font-weight:700;
+      border:1px solid rgba(245,158,11,0.2);
+    }
+    .badges-grid {
+      display:grid; grid-template-columns:repeat(5,1fr); gap:10px;
+    }
+    .badge-card {
+      display:flex; flex-direction:column; align-items:center; gap:6px;
+      padding:14px 8px; border-radius:14px;
+      background:var(--surface2); border:1px solid var(--border);
+      text-align:center; transition:all 0.25s; cursor:default;
+    }
+    .badge-card.earned {
+      border-color:rgba(245,158,11,0.35);
+      background:rgba(245,158,11,0.05);
+      box-shadow:0 0 16px rgba(245,158,11,0.06);
+    }
+    .badge-card.earned:hover { transform:translateY(-4px); box-shadow:0 8px 20px rgba(245,158,11,0.1); }
+    .badge-card.locked { opacity:0.35; filter:grayscale(1); }
+    .badge-emoji { font-size:1.8rem; }
+    .badge-name { font-size:0.68rem; font-weight:600; color:var(--muted); line-height:1.3; }
+    .badge-card.earned .badge-name { color:var(--amber); }
+    .badge-earned-date { font-size:0.6rem; color:var(--muted); }
+
+    /* ── INFO ROWS ── */
+    .info-panel { animation:fadeUp 0.5s ease 0.25s both; margin-bottom:20px; }
+    .info-row {
+      display:flex; align-items:center; gap:14px;
+      padding:14px 0;
+      border-bottom:1px solid var(--border);
+    }
+    .info-row:last-child { border-bottom:none; }
+    .info-icon {
+      width:38px; height:38px; border-radius:10px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.1rem; flex-shrink:0;
+    }
+    .ii-green  { background:rgba(34,197,94,0.1); }
+    .ii-amber  { background:rgba(245,158,11,0.1); }
+    .ii-blue   { background:rgba(59,130,246,0.1); }
+    .ii-purple { background:rgba(168,85,247,0.1); }
+    .ii-rose   { background:rgba(244,63,94,0.1); }
+    .info-body { flex:1; }
+    .info-label { font-size:0.78rem; color:var(--muted); margin-bottom:2px; }
+    .info-value { font-size:0.92rem; font-weight:500; }
+    .info-action {
+      font-size:0.78rem; color:var(--green); cursor:pointer;
+      background:none; border:none; font-family:'Satoshi',sans-serif;
+    }
+    .info-action:hover { text-decoration:underline; }
+
+    /* ── DANGER ZONE ── */
+    .danger-panel {
+      background:rgba(244,63,94,0.04);
+      border:1px solid rgba(244,63,94,0.15);
+      border-radius:18px; padding:24px;
+      animation:fadeUp 0.5s ease 0.3s both;
+    }
+    .danger-panel .panel-title { color:var(--rose); }
+    .danger-row { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+    .danger-desc { font-size:0.85rem; color:var(--muted); max-width:380px; line-height:1.5; }
+    .btn-danger {
+      padding:9px 18px; border-radius:10px;
+      background:rgba(244,63,94,0.1); color:var(--rose);
+      border:1px solid rgba(244,63,94,0.25);
+      font-size:0.85rem; font-weight:600; cursor:pointer;
+      transition:all 0.2s; font-family:'Satoshi',sans-serif;
+      white-space:nowrap;
+    }
+    .btn-danger:hover { background:rgba(244,63,94,0.18); }
+
+    /* ── EDIT MODAL ── */
+    .modal-overlay {
+      position:fixed; inset:0; z-index:200;
+      background:rgba(0,0,0,0.7); backdrop-filter:blur(6px);
+      display:flex; align-items:center; justify-content:center;
+      padding:20px; opacity:0; pointer-events:none; transition:opacity 0.25s;
+    }
+    .modal-overlay.open { opacity:1; pointer-events:all; }
+    .modal {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:20px; padding:32px; width:100%; max-width:420px;
+      transform:translateY(20px); transition:transform 0.3s;
+    }
+    .modal-overlay.open .modal { transform:translateY(0); }
+    .modal h2 {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:1.3rem; font-weight:900; margin-bottom:20px;
+    }
+    .form-group { margin-bottom:16px; }
+    .form-group label { display:block; font-size:0.78rem; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px; }
+    .form-group input {
+      width:100%; padding:11px 14px;
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:10px; color:var(--text);
+      font-family:'Satoshi',sans-serif; font-size:0.92rem;
+      outline:none; transition:border-color 0.2s;
+    }
+    .form-group input:focus { border-color:var(--green); }
+    .modal-actions { display:flex; gap:10px; margin-top:20px; }
+    .btn-save {
+      flex:1; padding:12px; border-radius:10px;
+      background:var(--green); color:#000;
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-weight:800; font-size:0.95rem;
+      border:none; cursor:pointer; transition:background 0.2s;
+    }
+    .btn-save:hover { background:#16a34a; }
+    .btn-cancel {
+      padding:12px 18px; border-radius:10px;
+      background:none; border:1px solid var(--border);
+      color:var(--muted); cursor:pointer; transition:all 0.2s;
+      font-family:'Satoshi',sans-serif;
+    }
+    .btn-cancel:hover { color:var(--text); }
+
+    /* ── TOAST ── */
+    .toast {
+      position:fixed; bottom:28px; right:28px;
+      background:var(--surface); border:1px solid rgba(34,197,94,0.3);
+      border-radius:14px; padding:14px 20px;
+      display:flex; align-items:center; gap:10px;
+      transform:translateY(80px); opacity:0;
+      transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+      z-index:999; font-size:0.88rem;
+    }
+    .toast.show { transform:translateY(0); opacity:1; }
+
+    @media(max-width:900px) {
+      .stats-grid { grid-template-columns:repeat(2,1fr); }
+      .two-col    { grid-template-columns:1fr; }
+      .badges-grid { grid-template-columns:repeat(4,1fr); }
+      .navbar { padding:14px 20px; }
+      .nav-links { display:none; }
+      main { padding:24px 16px 60px; }
+      .profile-hero-inner { flex-wrap:wrap; }
+    }
+    @media(max-width:500px) {
+      .stats-grid  { grid-template-columns:1fr 1fr; }
+      .badges-grid { grid-template-columns:repeat(3,1fr); }
+      .danger-row  { flex-direction:column; align-items:flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="ambient ambient-1"></div>
+<div class="ambient ambient-2"></div>
+
+<!-- ── NAVBAR ── -->
+<header class="navbar">
+  <div class="logo">🌱 <span>OutGrow</span></div>
+  <nav class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="quiz.html">Quiz</a>
+    <a href="journal.html">Journal</a>
+    <a href="badges.html">Badges</a>
+    <a href="profile.html" class="active">Profile</a>
+  </nav>
+  <button class="logout-btn" onclick="handleLogout()">Logout</button>
+</header>
+
+<main>
+
+  <!-- ── HERO CARD ── -->
+  <div class="profile-hero">
+    <div class="profile-hero-inner">
+      <div class="avatar-wrap">
+        <div class="avatar" id="avatarInitial">S</div>
+        <div class="avatar-ring"></div>
+      </div>
+      <div class="profile-info">
+        <div class="profile-name" id="profileName">Shamitha</div>
+        <div class="profile-email" id="profileEmail">shamitha@email.com</div>
+        <div class="level-badge level-intermediate" id="levelBadge">🎯 Intermediate Level</div>
+        <div class="join-date">Member since <span id="joinDate">—</span></div>
+      </div>
+      <button class="btn-edit" onclick="openModal()">✏️ Edit Profile</button>
+    </div>
+  </div>
+
+  <!-- ── STATS ── -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-emoji">🔥</div>
+      <div class="stat-value sv-green" id="sStreak">0</div>
+      <div class="stat-label">Current Streak</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-emoji">⚡</div>
+      <div class="stat-value sv-amber" id="sXP">0</div>
+      <div class="stat-label">Total XP</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-emoji">💪</div>
+      <div class="stat-value sv-purple" id="sComfort">0</div>
+      <div class="stat-label">Comfort Score</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-emoji">🏆</div>
+      <div class="stat-value sv-blue" id="sBest">0</div>
+      <div class="stat-label">Longest Streak</div>
+    </div>
+  </div>
+
+  <!-- ── TWO COLUMN ── -->
+  <div class="two-col">
+
+    <!-- XP & COMFORT -->
+    <div class="panel">
+      <div class="panel-title">XP & Comfort Score</div>
+      <div class="xp-row">
+        <div class="xp-big" id="xpBig">0</div>
+        <div class="xp-max">/ 500 XP</div>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill bar-green" id="xpBar" style="width:0%"></div>
+      </div>
+      <div class="bar-labels">
+        <span>Level 1</span><span id="xpPct">0%</span>
+      </div>
+
+      <div class="ring-wrap">
+        <svg class="ring-svg" width="80" height="80" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="32" fill="none" stroke="#18181f" stroke-width="9"/>
+          <circle id="comfortRing" cx="40" cy="40" r="32" fill="none"
+            stroke="#a855f7" stroke-width="9"
+            stroke-linecap="round"
+            stroke-dasharray="201.1"
+            stroke-dashoffset="201.1"
+            transform="rotate(-90 40 40)"/>
+        </svg>
+        <div class="ring-info">
+          <div class="ring-num" id="comfortNum">0</div>
+          <div class="ring-sub">Comfort Score</div>
+          <div class="ring-sub" style="margin-top:6px;color:var(--green)">+5 per habit done</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STREAK -->
+    <div class="panel">
+      <div class="panel-title">Weekly Streak</div>
+      <div style="font-family:'Cabinet Grotesk',sans-serif;font-size:2.6rem;font-weight:900;color:var(--green);line-height:1;margin-bottom:4px" id="streakBig">0</div>
+      <div style="color:var(--muted);font-size:0.82rem;margin-bottom:18px">consecutive days</div>
+      <div class="week-grid" id="weekGrid"></div>
+      <div class="streak-best">
+        Personal best &nbsp;
+        <span id="bestNum">0 days</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── BADGES ── -->
+  <div class="panel badges-panel" style="margin-bottom:20px">
+    <div class="badges-header">
+      <div class="panel-title" style="margin-bottom:0">Badges</div>
+      <div class="badges-earned-count" id="earnedCount">0 / 10 earned</div>
+    </div>
+    <div class="badges-grid" id="badgesGrid"></div>
+  </div>
+
+  <!-- ── ACCOUNT INFO ── -->
+  <div class="panel info-panel">
+    <div class="panel-title">Account Info</div>
+    <div class="info-row">
+      <div class="info-icon ii-green">👤</div>
+      <div class="info-body">
+        <div class="info-label">Full Name</div>
+        <div class="info-value" id="infoName">Shamitha</div>
+      </div>
+      <button class="info-action" onclick="openModal()">Edit</button>
+    </div>
+    <div class="info-row">
+      <div class="info-icon ii-blue">📧</div>
+      <div class="info-body">
+        <div class="info-label">Email Address</div>
+        <div class="info-value" id="infoEmail">shamitha@email.com</div>
+      </div>
+      <button class="info-action" onclick="openModal()">Edit</button>
+    </div>
+    <div class="info-row">
+      <div class="info-icon ii-amber">🎯</div>
+      <div class="info-body">
+        <div class="info-label">Introversion Level</div>
+        <div class="info-value" id="infoLevel">Intermediate</div>
+      </div>
+      <button class="info-action" onclick="window.location.href='quiz.html'">Retake Quiz</button>
+    </div>
+    <div class="info-row">
+      <div class="info-icon ii-purple">📅</div>
+      <div class="info-body">
+        <div class="info-label">Member Since</div>
+        <div class="info-value" id="infoJoined">—</div>
+      </div>
+    </div>
+    <div class="info-row">
+      <div class="info-icon ii-rose">🌍</div>
+      <div class="info-body">
+        <div class="info-label">Location</div>
+        <div class="info-value" id="infoLocation">Mangaluru, Karnataka</div>
+      </div>
+      <button class="info-action" onclick="openModal()">Edit</button>
+    </div>
+  </div>
+
+  <!-- ── DANGER ZONE ── -->
+  <div class="danger-panel">
+    <div class="panel-title">Danger Zone</div>
+    <div class="danger-row">
+      <div class="danger-desc">Reset all your progress including XP, streak, comfort score, and completed habits. This action cannot be undone.</div>
+      <button class="btn-danger" onclick="resetProgress()">🗑️ Reset Progress</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── EDIT MODAL ── -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOnBg(event)">
+  <div class="modal">
+    <h2>Edit Profile</h2>
+    <div class="form-group">
+      <label>Full Name</label>
+      <input type="text" id="editName" placeholder="Your name" />
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="editEmail" placeholder="your@email.com" />
+    </div>
+    <div class="form-group">
+      <label>Location</label>
+      <input type="text" id="editLocation" placeholder="City, State" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-save" onclick="saveProfile()">Save Changes</button>
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST ── -->
+<div class="toast" id="toast">
+  <span id="toastIcon">✅</span>
+  <span id="toastMsg">Saved!</span>
+</div>
+
+<script>
+// ──────────────────────────────────────────────
+//  LOAD STATE
+// ──────────────────────────────────────────────
+let name     = localStorage.getItem('og_name')     || 'Shamitha';
+let email    = localStorage.getItem('og_email')    || 'shamitha@email.com';
+let location = localStorage.getItem('og_location') || 'Mangaluru, Karnataka';
+let joined   = localStorage.getItem('og_joined')   || new Date().toISOString().split('T')[0];
+
+const xp           = parseInt(localStorage.getItem('og_xp')      || '0');
+const comfort      = parseInt(localStorage.getItem('og_comfort')  || '0');
+const streak       = parseInt(localStorage.getItem('og_streak')   || '0');
+const best         = parseInt(localStorage.getItem('og_best')     || '0');
+const introLevel   = localStorage.getItem('og_introLevel') || 'intermediate';
+const completed    = JSON.parse(localStorage.getItem('og_completed') || '[]');
+
+// Ensure joined date is saved
+if (!localStorage.getItem('og_joined')) localStorage.setItem('og_joined', joined);
+
+// ──────────────────────────────────────────────
+//  BADGES DATA
+// ──────────────────────────────────────────────
+const BADGES = [
+  { emoji:'🌱', name:'First Step',     earned: xp >= 10 },
+  { emoji:'🗣️', name:'Spoke First',   earned: xp >= 20 },
+  { emoji:'🔥', name:'Week Warrior',  earned: streak >= 7 },
+  { emoji:'👥', name:'Group Joiner',  earned: xp >= 35 },
+  { emoji:'💪', name:'Comfort Crush', earned: comfort >= 100 },
+  { emoji:'💬', name:'Digital Brave', earned: false },
+  { emoji:'👁️', name:'Eye Contact',   earned: xp >= 10 && streak >= 2 },
+  { emoji:'⚡', name:'On a Roll',     earned: completed.filter(x=>typeof x==='number').length >= 3 },
+  { emoji:'🏆', name:'Veteran',       earned: streak >= 30 },
+  { emoji:'🎤', name:'Public Voice',  earned: xp >= 100 },
+];
+
+// ──────────────────────────────────────────────
+//  RENDER
+// ──────────────────────────────────────────────
+function init() {
+  renderProfile();
+  renderStats();
+  renderWeek();
+  renderBadges();
+  setTimeout(animateBars, 300);
+}
+
+function renderProfile() {
+  const initial = name.trim()[0]?.toUpperCase() || 'S';
+  document.getElementById('avatarInitial').textContent = initial;
+  document.getElementById('profileName').textContent   = name;
+  document.getElementById('profileEmail').textContent  = email;
+  document.getElementById('infoName').textContent      = name;
+  document.getElementById('infoEmail').textContent     = email;
+  document.getElementById('infoLocation').textContent  = location;
+  document.getElementById('infoJoined').textContent    = formatDate(joined);
+  document.getElementById('joinDate').textContent      = formatDate(joined);
+
+  // level badge
+  const lvlEl  = document.getElementById('levelBadge');
+  const lvlMap = {
+    beginner:     { text:'☀️ Beginner Level',     cls:'level-beginner' },
+    intermediate: { text:'🎯 Intermediate Level', cls:'level-intermediate' },
+    advanced:     { text:'🌱 Advanced Level',      cls:'level-advanced' },
+  };
+  const lvl = lvlMap[introLevel] || lvlMap.intermediate;
+  lvlEl.textContent = lvl.text;
+  lvlEl.className   = 'level-badge ' + lvl.cls;
+  document.getElementById('infoLevel').textContent = introLevel.charAt(0).toUpperCase() + introLevel.slice(1);
+}
+
+function renderStats() {
+  document.getElementById('sStreak').textContent  = streak;
+  document.getElementById('sXP').textContent      = xp;
+  document.getElementById('sComfort').textContent = comfort;
+  document.getElementById('sBest').textContent    = best;
+  document.getElementById('xpBig').textContent    = xp;
+  document.getElementById('comfortNum').textContent = comfort;
+  document.getElementById('streakBig').textContent  = streak;
+  document.getElementById('bestNum').textContent    = best + ' days';
+}
+
+function animateBars() {
+  // XP bar
+  const xpPct = Math.min((xp / 500) * 100, 100);
+  document.getElementById('xpBar').style.width = xpPct + '%';
+  document.getElementById('xpPct').textContent = Math.round(xpPct) + '%';
+
+  // Comfort ring (circumference = 201.1)
+  const cOff = 201.1 - (Math.min(comfort, 500) / 500) * 201.1;
+  document.getElementById('comfortRing').style.strokeDashoffset = cOff;
+}
+
+function renderWeek() {
+  const labels   = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  const doneNum  = completed.filter(x => typeof x === 'number').length;
+  const grid     = document.getElementById('weekGrid');
+  grid.innerHTML = '';
+
+  labels.forEach((lbl, i) => {
+    let cls = '';
+    if (i < todayIdx) cls = 'done';
+    if (i === todayIdx && doneNum > 0) cls = 'today';
+    grid.innerHTML += `
+      <div class="week-col">
+        <div class="week-bar ${cls}"></div>
+        <div class="week-lbl">${lbl}</div>
+      </div>`;
+  });
+}
+
+function renderBadges() {
+  const grid    = document.getElementById('badgesGrid');
+  const earned  = BADGES.filter(b => b.earned).length;
+  document.getElementById('earnedCount').textContent = earned + ' / 10 earned';
+  grid.innerHTML = '';
+
+  BADGES.forEach(b => {
+    grid.innerHTML += `
+      <div class="badge-card ${b.earned ? 'earned' : 'locked'}" title="${b.earned ? 'Earned!' : 'Locked'}">
+        <div class="badge-emoji">${b.emoji}</div>
+        <div class="badge-name">${b.name}</div>
+        ${b.earned ? '<div class="badge-earned-date">✓ Earned</div>' : ''}
+      </div>`;
+  });
+}
+
+// ──────────────────────────────────────────────
+//  EDIT MODAL
+// ──────────────────────────────────────────────
+function openModal() {
+  document.getElementById('editName').value     = name;
+  document.getElementById('editEmail').value    = email;
+  document.getElementById('editLocation').value = location;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+function closeModalOnBg(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+function saveProfile() {
+  const newName     = document.getElementById('editName').value.trim();
+  const newEmail    = document.getElementById('editEmail').value.trim();
+  const newLocation = document.getElementById('editLocation').value.trim();
+
+  if (!newName) { showToast('⚠️', 'Name cannot be empty'); return; }
+
+  name     = newName     || name;
+  email    = newEmail    || email;
+  location = newLocation || location;
+
+  localStorage.setItem('og_name',     name);
+  localStorage.setItem('og_email',    email);
+  localStorage.setItem('og_location', location);
+
+  renderProfile();
+  closeModal();
+  showToast('✅', 'Profile updated!');
+}
+
+// ──────────────────────────────────────────────
+//  RESET
+// ──────────────────────────────────────────────
+function resetProgress() {
+  if (!confirm('⚠️ Reset ALL progress? XP, streaks, comfort score and habits will be cleared. This cannot be undone.')) return;
+  ['og_xp','og_comfort','og_streak','og_best','og_completed','og_reflections','og_introLevel'].forEach(k => localStorage.removeItem(k));
+  showToast('🗑️', 'Progress reset. Refreshing...');
+  setTimeout(() => window.location.reload(), 1500);
+}
+
+// ──────────────────────────────────────────────
+//  LOGOUT
+// ──────────────────────────────────────────────
+function handleLogout() {
+  if (confirm('Log out of OutGrow?')) window.location.href = '../user?action=logout';
+}
+
+// ──────────────────────────────────────────────
+//  HELPERS
+// ──────────────────────────────────────────────
+function showToast(icon, msg) {
+  document.getElementById('toastIcon').textContent = icon;
+  document.getElementById('toastMsg').textContent  = msg;
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '—';
+  return new Date(dateStr).toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
+}
+
+init();
+</script>
+</body>
+</html>

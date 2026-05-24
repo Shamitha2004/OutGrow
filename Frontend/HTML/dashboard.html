@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OutGrow — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&family=Satoshi:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+    :root {
+      --bg:        #09090f;
+      --surface:   #111118;
+      --surface2:  #18181f;
+      --border:    rgba(255,255,255,0.07);
+      --green:     #22c55e;
+      --green-dim: #166534;
+      --glow:      rgba(34,197,94,0.18);
+      --amber:     #f59e0b;
+      --blue:      #3b82f6;
+      --rose:      #f43f5e;
+      --purple:    #a855f7;
+      --cyan:      #06b6d4;
+      --text:      #f0f0f4;
+      --muted:     #6b7280;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Satoshi', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content:'';
+      position:fixed; inset:0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events:none; z-index:0;
+    }
+
+    .ambient { position:fixed; pointer-events:none; z-index:0; border-radius:50%; filter:blur(120px); opacity:0.25; }
+    .ambient-1 { width:500px; height:500px; background:radial-gradient(circle,#22c55e40,transparent 70%); top:-150px; left:-150px; animation:drift1 18s ease-in-out infinite alternate; }
+    .ambient-2 { width:400px; height:400px; background:radial-gradient(circle,#a855f730,transparent 70%); bottom:-100px; right:-80px; animation:drift2 22s ease-in-out infinite alternate; }
+    @keyframes drift1 { to { transform:translate(60px,80px); } }
+    @keyframes drift2 { to { transform:translate(-40px,-60px); } }
+
+    /* ── NAVBAR ── */
+    .navbar {
+      position:sticky; top:0; z-index:100;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 40px;
+      background:rgba(9,9,15,0.85);
+      backdrop-filter:blur(20px);
+      border-bottom:1px solid var(--border);
+    }
+    .logo {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:1.5rem; font-weight:900; color:var(--green);
+      letter-spacing:-0.5px; display:flex; align-items:center; gap:8px;
+      text-decoration:none;
+    }
+    .logo span { color:var(--text); }
+    .nav-links { display:flex; align-items:center; gap:4px; }
+    .nav-links a {
+      padding:7px 16px; border-radius:8px;
+      color:var(--muted); font-size:0.88rem; font-weight:500;
+      text-decoration:none; transition:all 0.2s;
+    }
+    .nav-links a:hover { color:var(--text); background:var(--surface2); }
+    .nav-links a.active { color:var(--green); }
+    .nav-right { display:flex; align-items:center; gap:10px; }
+    .streak-pill {
+      display:flex; align-items:center; gap:6px;
+      padding:6px 14px; border-radius:100px;
+      background:rgba(34,197,94,0.08);
+      border:1px solid rgba(34,197,94,0.2);
+      color:var(--green); font-size:0.82rem; font-weight:700;
+    }
+    .streak-pill .fire { animation:flicker 1.2s ease-in-out infinite alternate; }
+    @keyframes flicker { from{opacity:1} to{opacity:0.6} }
+    .logout-btn {
+      padding:7px 16px; border-radius:8px;
+      background:none; border:1px solid var(--border);
+      color:var(--muted); font-size:0.82rem; cursor:pointer;
+      transition:all 0.2s; font-family:'Satoshi',sans-serif;
+    }
+    .logout-btn:hover { color:var(--rose); border-color:rgba(244,63,94,0.3); }
+
+    /* ── LAYOUT ── */
+    main {
+      position:relative; z-index:1;
+      max-width:1200px; margin:0 auto;
+      padding:36px 40px 60px;
+    }
+
+    /* ── GREETING ── */
+    .greeting { margin-bottom:32px; animation:fadeUp 0.5s ease both; }
+    .greeting-top { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px; }
+    .greeting h1 {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:2rem; font-weight:900; letter-spacing:-1px;
+    }
+    .greeting h1 .name { color:var(--green); }
+    .greeting p { color:var(--muted); font-size:0.9rem; margin-top:4px; }
+    .date-badge {
+      padding:8px 16px; border-radius:10px;
+      background:var(--surface); border:1px solid var(--border);
+      font-size:0.82rem; color:var(--muted);
+    }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ── STATS ROW ── */
+    .stats-row {
+      display:grid; grid-template-columns:repeat(4,1fr); gap:14px;
+      margin-bottom:28px;
+      animation:fadeUp 0.5s ease 0.1s both;
+    }
+    .stat-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:16px; padding:20px;
+      display:flex; align-items:center; gap:14px;
+      transition:all 0.2s;
+    }
+    .stat-card:hover { border-color:rgba(255,255,255,0.12); transform:translateY(-2px); }
+    .stat-icon {
+      width:42px; height:42px; border-radius:12px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.2rem; flex-shrink:0;
+    }
+    .si-green  { background:rgba(34,197,94,0.12); }
+    .si-amber  { background:rgba(245,158,11,0.12); }
+    .si-blue   { background:rgba(59,130,246,0.12); }
+    .si-purple { background:rgba(168,85,247,0.12); }
+    .stat-body { min-width:0; }
+    .stat-value {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:1.7rem; font-weight:900; line-height:1;
+    }
+    .stat-label { font-size:0.75rem; color:var(--muted); margin-top:3px; }
+
+    /* ── MAIN GRID ── */
+    .dash-grid {
+      display:grid;
+      grid-template-columns:1fr 340px;
+      grid-template-rows:auto auto;
+      gap:20px;
+    }
+
+    /* ── PANEL BASE ── */
+    .panel {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:18px; padding:24px;
+      animation:fadeUp 0.5s ease 0.15s both;
+    }
+    .panel-header {
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:20px;
+    }
+    .panel-title {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:0.78rem; font-weight:700;
+      text-transform:uppercase; letter-spacing:1.5px; color:var(--muted);
+    }
+    .panel-action {
+      font-size:0.78rem; color:var(--green); cursor:pointer;
+      background:none; border:none; font-family:'Satoshi',sans-serif;
+      text-decoration:none;
+    }
+    .panel-action:hover { text-decoration:underline; }
+
+    /* ── TODAY'S HABITS ── */
+    .habits-col { grid-row:1/3; }
+
+    .habits-summary {
+      display:flex; align-items:center; gap:12px; margin-bottom:20px;
+    }
+    .ring-mini { flex-shrink:0; }
+    .ring-mini circle { transition:stroke-dashoffset 1s ease; }
+    .habits-summary-text h3 {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:1.1rem; font-weight:800;
+    }
+    .habits-summary-text p { color:var(--muted); font-size:0.83rem; margin-top:2px; }
+
+    .habit-list { display:flex; flex-direction:column; gap:12px; }
+
+    .habit-card {
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:14px; padding:18px;
+      transition:all 0.25s; position:relative; overflow:hidden;
+    }
+    .habit-card::before {
+      content:''; position:absolute; left:0; top:0; bottom:0;
+      width:3px; border-radius:0 3px 3px 0;
+    }
+    .habit-card.beginner::before    { background:var(--blue); }
+    .habit-card.intermediate::before{ background:var(--amber); }
+    .habit-card.advanced::before    { background:var(--rose); }
+    .habit-card.expert::before      { background:var(--purple); }
+    .habit-card.done {
+      border-color:rgba(34,197,94,0.2);
+      background:rgba(34,197,94,0.04);
+    }
+    .habit-card.done::after {
+      content:''; position:absolute; inset:0; border-radius:14px;
+      background:linear-gradient(135deg,transparent 70%,rgba(34,197,94,0.05));
+    }
+    .habit-card:not(.done):hover { border-color:rgba(255,255,255,0.12); transform:translateX(4px); }
+
+    .habit-top {
+      display:flex; align-items:flex-start;
+      justify-content:space-between; gap:12px; margin-bottom:10px;
+    }
+    .habit-info { flex:1; min-width:0; }
+    .habit-title {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-weight:800; font-size:0.98rem; margin-bottom:4px;
+    }
+    .habit-desc { color:var(--muted); font-size:0.82rem; line-height:1.5; }
+    .habit-chips { display:flex; gap:6px; flex-wrap:wrap; }
+
+    .chip {
+      padding:3px 9px; border-radius:6px;
+      font-size:0.7rem; font-weight:700;
+    }
+    .chip-beginner     { background:rgba(59,130,246,0.12); color:var(--blue); }
+    .chip-intermediate { background:rgba(245,158,11,0.12);  color:var(--amber); }
+    .chip-advanced     { background:rgba(244,63,94,0.12);   color:var(--rose); }
+    .chip-expert       { background:rgba(168,85,247,0.12);  color:var(--purple); }
+    .chip-xp           { background:rgba(245,158,11,0.1);   color:var(--amber); }
+    .chip-done         { background:rgba(34,197,94,0.1);    color:var(--green); }
+
+    .habit-actions { display:flex; gap:8px; margin-top:14px; }
+    .reflection-box {
+      width:100%; background:var(--bg);
+      border:1px solid var(--border); border-radius:8px;
+      padding:8px 12px; color:var(--text);
+      font-family:'Satoshi',sans-serif; font-size:0.82rem;
+      resize:none; height:52px; outline:none;
+      transition:border-color 0.2s; margin-top:10px;
+    }
+    .reflection-box:focus { border-color:var(--green); }
+    .reflection-box::placeholder { color:var(--muted); }
+
+    .btn-done {
+      flex:1; padding:9px 14px; border-radius:9px;
+      background:var(--green); color:#000;
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-weight:800; font-size:0.85rem;
+      border:none; cursor:pointer; transition:all 0.2s;
+    }
+    .btn-done:hover { background:#16a34a; }
+    .btn-done:disabled {
+      background:rgba(34,197,94,0.1); color:var(--green);
+      cursor:default; border:1px solid rgba(34,197,94,0.2);
+    }
+    .btn-skip {
+      padding:9px 14px; border-radius:9px;
+      background:none; border:1px solid var(--border);
+      color:var(--muted); font-size:0.85rem; cursor:pointer;
+      transition:all 0.2s; font-family:'Satoshi',sans-serif;
+    }
+    .btn-skip:hover { color:var(--text); border-color:rgba(255,255,255,0.15); }
+    .done-label {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 12px; border-radius:8px;
+      background:rgba(34,197,94,0.1); color:var(--green);
+      font-size:0.8rem; font-weight:700;
+    }
+    .skipped-label {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 12px; border-radius:8px;
+      background:rgba(255,255,255,0.04); color:var(--muted);
+      font-size:0.8rem;
+    }
+
+    /* ── RIGHT COLUMN ── */
+    .right-col { display:flex; flex-direction:column; gap:20px; }
+
+    /* XP PANEL */
+    .xp-panel {}
+    .xp-big {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:2.8rem; font-weight:900; line-height:1;
+      margin-bottom:4px;
+    }
+    .xp-sub { color:var(--muted); font-size:0.82rem; margin-bottom:16px; }
+    .bar-track {
+      height:8px; background:var(--surface2);
+      border-radius:100px; overflow:hidden;
+      border:1px solid var(--border); margin-bottom:6px;
+    }
+    .bar-fill {
+      height:100%; border-radius:100px;
+      background:linear-gradient(90deg,var(--green),#4ade80);
+      transition:width 1.2s cubic-bezier(0.34,1,0.64,1);
+    }
+    .bar-labels { display:flex; justify-content:space-between; font-size:0.72rem; color:var(--muted); }
+
+    .comfort-row { display:flex; align-items:center; gap:16px; margin-top:18px; padding-top:18px; border-top:1px solid var(--border); }
+    .comfort-ring { flex-shrink:0; }
+    .comfort-ring circle { transition:stroke-dashoffset 1.2s cubic-bezier(0.34,1,0.64,1); }
+    .comfort-text {}
+    .comfort-score-num {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:1.6rem; font-weight:900;
+    }
+    .comfort-label { font-size:0.75rem; color:var(--muted); margin-top:2px; }
+
+    /* STREAK PANEL */
+    .streak-panel {}
+    .streak-big {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:3rem; font-weight:900; line-height:1;
+      color:var(--green);
+    }
+    .streak-sub { color:var(--muted); font-size:0.82rem; margin-bottom:16px; }
+    .week-dots { display:flex; gap:6px; }
+    .week-dot {
+      flex:1; display:flex; flex-direction:column;
+      align-items:center; gap:6px;
+    }
+    .week-dot-bar {
+      width:100%; height:36px; border-radius:8px;
+      background:var(--surface2); border:1px solid var(--border);
+      transition:all 0.4s;
+    }
+    .week-dot-bar.done  { background:rgba(34,197,94,0.35); border-color:rgba(34,197,94,0.3); }
+    .week-dot-bar.today { background:var(--green); border-color:var(--green); box-shadow:0 0 10px rgba(34,197,94,0.4); }
+    .week-dot-bar.missed{ background:rgba(244,63,94,0.1); border-color:rgba(244,63,94,0.2); }
+    .week-dot-label { font-size:0.65rem; color:var(--muted); }
+    .best-streak { margin-top:14px; font-size:0.8rem; color:var(--muted); }
+    .best-streak span { color:var(--amber); font-weight:700; }
+
+    /* HEATMAP PANEL */
+    .heatmap-panel { animation:fadeUp 0.5s ease 0.25s both; }
+    .heatmap-grid {
+      display:grid; grid-template-columns:repeat(10,1fr);
+      gap:4px; margin-top:4px;
+    }
+    .hm-cell {
+      aspect-ratio:1; border-radius:3px;
+      background:var(--surface2); border:1px solid var(--border);
+      cursor:pointer; transition:transform 0.1s;
+      position:relative;
+    }
+    .hm-cell:hover { transform:scale(1.3); z-index:2; }
+    .hm-cell.l1 { background:#0e4429; border-color:#0e4429; }
+    .hm-cell.l2 { background:#006d32; border-color:#006d32; }
+    .hm-cell.l3 { background:#26a641; border-color:#26a641; }
+    .hm-cell.l4 { background:#39d353; border-color:#39d353; }
+    .heatmap-legend { display:flex; align-items:center; gap:6px; margin-top:10px; justify-content:flex-end; font-size:0.7rem; color:var(--muted); }
+    .legend-box { width:10px; height:10px; border-radius:2px; }
+
+    /* ── TOAST ── */
+    .xp-toast {
+      position:fixed; bottom:32px; right:32px;
+      background:var(--surface); border:1px solid rgba(34,197,94,0.3);
+      border-radius:14px; padding:14px 20px;
+      display:flex; align-items:center; gap:12px;
+      transform:translateY(80px); opacity:0;
+      transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+      z-index:999; min-width:220px;
+    }
+    .xp-toast.show { transform:translateY(0); opacity:1; }
+    .toast-icon { font-size:1.5rem; }
+    .toast-body strong {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:1rem; color:var(--green);
+    }
+    .toast-body p { font-size:0.78rem; color:var(--muted); margin-top:2px; }
+
+    /* ── EMPTY STATE ── */
+    .all-done {
+      text-align:center; padding:40px 20px;
+      color:var(--muted);
+    }
+    .all-done .trophy { font-size:3rem; margin-bottom:12px; }
+    .all-done h3 {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:1.2rem; font-weight:800; color:var(--text); margin-bottom:8px;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media(max-width:1000px) {
+      .dash-grid { grid-template-columns:1fr; grid-template-rows:auto; }
+      .habits-col { grid-row:auto; }
+      .stats-row { grid-template-columns:repeat(2,1fr); }
+      .navbar { padding:14px 20px; }
+      .nav-links { display:none; }
+      main { padding:24px 20px 48px; }
+    }
+    @media(max-width:500px) {
+      .stats-row { grid-template-columns:1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="ambient ambient-1"></div>
+<div class="ambient ambient-2"></div>
+
+<!-- ── NAVBAR ── -->
+<header class="navbar">
+  <div class="logo">🌱 <span>OutGrow</span></div>
+  <nav class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="dashboard.html" class="active">Dashboard</a>
+    <a href="quiz.html">Quiz</a>
+    <a href="journal.html">Journal</a>
+    <a href="badges.html">Badges</a>
+    <a href="profile.html">Profile</a>
+  </nav>
+  <div class="nav-right">
+    <div class="streak-pill">
+      <span class="fire">🔥</span>
+      <span id="navStreak">0</span> day streak
+    </div>
+    <button class="logout-btn" onclick="handleLogout()">Logout</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- GREETING -->
+  <div class="greeting">
+    <div class="greeting-top">
+      <div>
+        <h1 id="greetingText">Good morning, <span class="name">there</span> 👋</h1>
+        <p id="greetingDate">Loading...</p>
+      </div>
+      <div class="date-badge" id="dateBadge">—</div>
+    </div>
+  </div>
+
+  <!-- STATS ROW -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon si-green">🔥</div>
+      <div class="stat-body">
+        <div class="stat-value" id="statStreak">0</div>
+        <div class="stat-label">Day Streak</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon si-amber">⚡</div>
+      <div class="stat-body">
+        <div class="stat-value" id="statXP">0</div>
+        <div class="stat-label">Total XP</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon si-blue">🎯</div>
+      <div class="stat-body">
+        <div class="stat-value" id="statDone">0/3</div>
+        <div class="stat-label">Done Today</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon si-purple">💪</div>
+      <div class="stat-body">
+        <div class="stat-value" id="statComfort">0</div>
+        <div class="stat-label">Comfort Score</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="dash-grid">
+
+    <!-- ── LEFT: TODAY'S HABITS ── -->
+    <div class="panel habits-col">
+      <div class="panel-header">
+        <div class="panel-title">Today's Challenges</div>
+        <a href="journal.html" class="panel-action">View Journal →</a>
+      </div>
+
+      <!-- ring summary -->
+      <div class="habits-summary">
+        <svg class="ring-mini" width="64" height="64" viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="26" fill="none" stroke="#18181f" stroke-width="7"/>
+          <circle id="progressRing" cx="32" cy="32" r="26" fill="none"
+            stroke="#22c55e" stroke-width="7"
+            stroke-linecap="round"
+            stroke-dasharray="163.4"
+            stroke-dashoffset="163.4"
+            transform="rotate(-90 32 32)"/>
+        </svg>
+        <div class="habits-summary-text">
+          <h3 id="summaryTitle">0 of 3 completed</h3>
+          <p id="summarySubtitle">Complete all 3 to keep your streak alive!</p>
+        </div>
+      </div>
+
+      <div class="habit-list" id="habitList">
+        <!-- rendered by JS -->
+      </div>
+    </div>
+
+    <!-- ── RIGHT COLUMN ── -->
+    <div class="right-col">
+
+      <!-- XP PANEL -->
+      <div class="panel xp-panel">
+        <div class="panel-header">
+          <div class="panel-title">XP & Comfort</div>
+        </div>
+        <div class="xp-big" id="xpBig">0</div>
+        <div class="xp-sub">experience points</div>
+        <div class="bar-track">
+          <div class="bar-fill" id="xpBarFill" style="width:0%"></div>
+        </div>
+        <div class="bar-labels">
+          <span>Level 1</span>
+          <span id="xpBarPct">0 / 500 XP</span>
+        </div>
+
+        <div class="comfort-row">
+          <svg class="comfort-ring" width="72" height="72" viewBox="0 0 72 72">
+            <circle cx="36" cy="36" r="28" fill="none" stroke="#18181f" stroke-width="8"/>
+            <circle id="comfortRing" cx="36" cy="36" r="28" fill="none"
+              stroke="#a855f7" stroke-width="8"
+              stroke-linecap="round"
+              stroke-dasharray="175.9"
+              stroke-dashoffset="175.9"
+              transform="rotate(-90 36 36)"/>
+          </svg>
+          <div class="comfort-text">
+            <div class="comfort-score-num" id="comfortNum">0</div>
+            <div class="comfort-label">Comfort Score</div>
+            <div class="comfort-label" style="margin-top:6px;color:var(--green)">+5 per habit ✓</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STREAK PANEL -->
+      <div class="panel streak-panel">
+        <div class="panel-header">
+          <div class="panel-title">Weekly Streak</div>
+        </div>
+        <div class="streak-big" id="streakBig">0</div>
+        <div class="streak-sub">consecutive days</div>
+        <div class="week-dots" id="weekDots">
+          <!-- rendered by JS -->
+        </div>
+        <div class="best-streak">Personal best: <span id="bestStreak">0</span> days</div>
+      </div>
+
+    </div><!-- /right-col -->
+
+    <!-- ── HEATMAP (full width) ── -->
+    <div class="panel heatmap-panel" style="grid-column:1/-1">
+      <div class="panel-header">
+        <div class="panel-title">60-Day Activity Heatmap</div>
+        <a href="#" class="panel-action" onclick="return false">Last 60 days</a>
+      </div>
+      <div class="heatmap-grid" id="heatmapGrid"></div>
+      <div class="heatmap-legend">
+        <span>Less</span>
+        <div class="legend-box" style="background:#18181f;border:1px solid #30363d"></div>
+        <div class="legend-box" style="background:#0e4429"></div>
+        <div class="legend-box" style="background:#006d32"></div>
+        <div class="legend-box" style="background:#26a641"></div>
+        <div class="legend-box" style="background:#39d353"></div>
+        <span>More</span>
+      </div>
+    </div>
+
+  </div><!-- /dash-grid -->
+</main>
+
+<!-- XP Toast -->
+<div class="xp-toast" id="xpToast">
+  <div class="toast-icon">⚡</div>
+  <div class="toast-body">
+    <strong id="toastXP">+0 XP</strong>
+    <p id="toastMsg">Keep going!</p>
+  </div>
+</div>
+
+<script>
+// ──────────────────────────────────────────────
+//  STATE  (localStorage — works without backend)
+// ──────────────────────────────────────────────
+const today = new Date().toDateString();
+const lastDate = localStorage.getItem('og_lastDate') || '';
+
+// Reset daily completion if new day
+if (lastDate !== today) {
+  localStorage.setItem('og_completed', '[]');
+  localStorage.setItem('og_reflections', '{}');
+  localStorage.setItem('og_lastDate', today);
+
+  // update streak
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const wasYesterday = localStorage.getItem('og_lastDate') === yesterday.toDateString();
+  let streak = parseInt(localStorage.getItem('og_streak') || '0');
+  if (!wasYesterday && streak > 0) {
+    localStorage.setItem('og_streak', '0');
+  }
+}
+
+let totalXP      = parseInt(localStorage.getItem('og_xp')      || '0');
+let comfortScore = parseInt(localStorage.getItem('og_comfort')  || '0');
+let streakCount  = parseInt(localStorage.getItem('og_streak')   || '0');
+let bestStreak   = parseInt(localStorage.getItem('og_best')     || '0');
+let completed    = JSON.parse(localStorage.getItem('og_completed')   || '[]');
+let reflections  = JSON.parse(localStorage.getItem('og_reflections') || '{}');
+
+// ──────────────────────────────────────────────
+//  HABITS DATA
+// ──────────────────────────────────────────────
+const HABITS = [
+  { id:0, emoji:'😊', title:'Smile at a stranger',      desc:"Make eye contact and smile at one person you don't know today.",         diff:'beginner',    xp:10 },
+  { id:1, emoji:'💬', title:'Compliment someone aloud', desc:'Give a sincere, specific compliment to someone in person today.',         diff:'intermediate', xp:20 },
+  { id:2, emoji:'🗣️', title:'Speak up in a group',      desc:'Share at least one idea in a group discussion, class, or meeting today.', diff:'advanced',     xp:35 },
+];
+
+// ──────────────────────────────────────────────
+//  INIT
+// ──────────────────────────────────────────────
+function init() {
+  setGreeting();
+  renderStats();
+  renderHabits();
+  renderWeekDots();
+  renderHeatmap();
+  setTimeout(animateBars, 300);
+}
+
+// ──────────────────────────────────────────────
+//  GREETING
+// ──────────────────────────────────────────────
+function setGreeting() {
+  const h = new Date().getHours();
+  const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  const name = localStorage.getItem('og_name') || 'there';
+  document.getElementById('greetingText').innerHTML =
+    greet + ', <span class="name">' + name + '</span> 👋';
+
+  const d = new Date();
+  document.getElementById('greetingDate').textContent =
+    'Here are your challenges for today — keep the streak alive!';
+  document.getElementById('dateBadge').textContent =
+    d.toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'short' });
+}
+
+// ──────────────────────────────────────────────
+//  STATS
+// ──────────────────────────────────────────────
+function renderStats() {
+  document.getElementById('statStreak').textContent  = streakCount;
+  document.getElementById('statXP').textContent      = totalXP;
+  document.getElementById('statDone').textContent    = completed.length + '/3';
+  document.getElementById('statComfort').textContent = comfortScore;
+  document.getElementById('navStreak').textContent   = streakCount;
+  document.getElementById('xpBig').textContent       = totalXP;
+  document.getElementById('comfortNum').textContent  = comfortScore;
+  document.getElementById('bestStreak').textContent  = bestStreak;
+  document.getElementById('xpBarPct').textContent    = totalXP + ' / 500 XP';
+}
+
+function animateBars() {
+  // XP bar
+  const xpPct = Math.min((totalXP / 500) * 100, 100);
+  document.getElementById('xpBarFill').style.width = xpPct + '%';
+
+  // Comfort ring  (circumference = 175.9)
+  const comfortOffset = 175.9 - (Math.min(comfortScore, 500) / 500) * 175.9;
+  document.getElementById('comfortRing').style.strokeDashoffset = comfortOffset;
+
+  // Progress ring (circumference = 163.4)
+  const donePct = completed.length / 3;
+  const ringOffset = 163.4 - donePct * 163.4;
+  document.getElementById('progressRing').style.strokeDashoffset = ringOffset;
+
+  // Summary
+  const titles = ['0 of 3 completed', '1 of 3 completed', '2 of 3 completed', 'All 3 done! 🏆'];
+  const subs   = [
+    'Complete all 3 to keep your streak alive!',
+    'Great start! 2 more to go.',
+    'Almost there! One more!',
+    'Incredible work today 🎉'
+  ];
+  document.getElementById('summaryTitle').textContent    = titles[completed.length] || titles[3];
+  document.getElementById('summarySubtitle').textContent = subs[completed.length]   || subs[3];
+}
+
+// ──────────────────────────────────────────────
+//  HABITS
+// ──────────────────────────────────────────────
+function renderHabits() {
+  const list = document.getElementById('habitList');
+  list.innerHTML = '';
+
+  HABITS.forEach(h => {
+    const isDone    = completed.includes(h.id);
+    const isSkipped = completed.includes('skip_' + h.id);
+    const ref       = reflections[h.id] || '';
+
+    const card = document.createElement('div');
+    card.className = 'habit-card ' + h.diff + (isDone ? ' done' : '');
+    card.id = 'hcard_' + h.id;
+
+    let statusHTML = '';
+    if (isDone) {
+      statusHTML = `
+        <div class="done-label">✓ Completed</div>
+        ${ref ? `<div style="margin-top:8px;font-size:0.8rem;color:var(--muted);font-style:italic">"${ref}"</div>` : ''}
+      `;
+    } else if (isSkipped) {
+      statusHTML = `<div class="skipped-label">— Skipped</div>`;
+    } else {
+      statusHTML = `
+        <textarea class="reflection-box" id="ref_${h.id}"
+          placeholder="How did this feel? (optional reflection)"></textarea>
+        <div class="habit-actions">
+          <button class="btn-done" onclick="markDone(${h.id})">✓ Done</button>
+          <button class="btn-skip" onclick="markSkip(${h.id})">Skip</button>
+        </div>
+      `;
+    }
+
+    card.innerHTML = `
+      <div class="habit-top">
+        <div style="font-size:1.8rem">${h.emoji}</div>
+        <div class="habit-info">
+          <div class="habit-title">${h.title}</div>
+          <div class="habit-desc">${h.desc}</div>
+        </div>
+      </div>
+      <div class="habit-chips">
+        <span class="chip chip-${h.diff}">${h.diff}</span>
+        <span class="chip chip-xp">+${h.xp} XP</span>
+        ${isDone ? '<span class="chip chip-done">✓ done</span>' : ''}
+      </div>
+      <div style="margin-top:12px">${statusHTML}</div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+function markDone(id) {
+  if (completed.includes(id)) return;
+  const h   = HABITS.find(x => x.id === id);
+  const ref = (document.getElementById('ref_' + id)?.value || '').trim();
+
+  completed.push(id);
+  if (ref) reflections[id] = ref;
+
+  totalXP      += h.xp;
+  comfortScore  = Math.min(comfortScore + 5, 500);
+
+  // streak logic
+  if (completed.filter(x => typeof x === 'number').length === 1) {
+    streakCount++;
+    if (streakCount > bestStreak) bestStreak = streakCount;
+    localStorage.setItem('og_streak', streakCount);
+    localStorage.setItem('og_best', bestStreak);
+  }
+
+  // save
+  localStorage.setItem('og_completed',   JSON.stringify(completed));
+  localStorage.setItem('og_reflections', JSON.stringify(reflections));
+  localStorage.setItem('og_xp',          totalXP);
+  localStorage.setItem('og_comfort',     comfortScore);
+
+  // update UI
+  renderStats();
+  renderHabits();
+  renderWeekDots();
+  setTimeout(animateBars, 100);
+  showToast('+' + h.xp + ' XP', completed.length === 3 ? '🏆 All done today!' : '🔥 Keep it up!');
+}
+
+function markSkip(id) {
+  if (completed.includes('skip_' + id)) return;
+  completed.push('skip_' + id);
+  localStorage.setItem('og_completed', JSON.stringify(completed));
+  renderHabits();
+}
+
+// ──────────────────────────────────────────────
+//  WEEK DOTS
+// ──────────────────────────────────────────────
+function renderWeekDots() {
+  const container = document.getElementById('weekDots');
+  container.innerHTML = '';
+  const labels  = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  const doneNum  = completed.filter(x => typeof x === 'number').length;
+
+  labels.forEach((lbl, i) => {
+    let cls = '';
+    if (i < todayIdx)  cls = 'done';
+    if (i === todayIdx) cls = doneNum > 0 ? 'today' : '';
+    if (i > todayIdx)  cls = '';
+
+    container.innerHTML += `
+      <div class="week-dot">
+        <div class="week-dot-bar ${cls}"></div>
+        <div class="week-dot-label">${lbl}</div>
+      </div>`;
+  });
+}
+
+// ──────────────────────────────────────────────
+//  HEATMAP
+// ──────────────────────────────────────────────
+function renderHeatmap() {
+  const grid = document.getElementById('heatmapGrid');
+  grid.innerHTML = '';
+  // Simulated 60-day data — in production this comes from /dashboard?action=heatmap
+  for (let i = 59; i >= 0; i--) {
+    const d   = new Date(); d.setDate(d.getDate() - i);
+    const pct = i === 0 ? completed.filter(x=>typeof x==='number').length / 3
+              : i < 7   ? Math.random() * 0.8
+              : i < 20  ? Math.random() * 0.6
+              :            Math.random() * 0.3;
+
+    const lvl = pct === 0 ? '' : pct < 0.34 ? 'l1' : pct < 0.67 ? 'l2' : pct < 1 ? 'l3' : 'l4';
+    const cell = document.createElement('div');
+    cell.className = 'hm-cell ' + lvl;
+    cell.title = d.toLocaleDateString('en-IN',{day:'numeric',month:'short'}) +
+                 ' — ' + (pct === 0 ? 'No activity' : Math.round(pct*100)+'% completion');
+    grid.appendChild(cell);
+  }
+}
+
+// ──────────────────────────────────────────────
+//  TOAST
+// ──────────────────────────────────────────────
+function showToast(xpText, msg) {
+  document.getElementById('toastXP').textContent  = xpText;
+  document.getElementById('toastMsg').textContent = msg;
+  const t = document.getElementById('xpToast');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// ──────────────────────────────────────────────
+//  LOGOUT
+// ──────────────────────────────────────────────
+function handleLogout() {
+  if (confirm('Log out of OutGrow?')) {
+    window.location.href = '../user?action=logout';
+  }
+}
+
+init();
+</script>
+</body>
+</html>

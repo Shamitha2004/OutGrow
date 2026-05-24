@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OutGrow — Social Confidence Quiz</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&family=Satoshi:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+    :root {
+      --bg:        #09090f;
+      --surface:   #111118;
+      --surface2:  #18181f;
+      --border:    rgba(255,255,255,0.07);
+      --green:     #22c55e;
+      --green-dim: #166534;
+      --glow:      rgba(34,197,94,0.18);
+      --amber:     #f59e0b;
+      --blue:      #3b82f6;
+      --rose:      #f43f5e;
+      --purple:    #a855f7;
+      --text:      #f0f0f4;
+      --muted:     #6b7280;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Satoshi', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content:'';
+      position:fixed; inset:0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events:none; z-index:0;
+    }
+
+    .ambient { position:fixed; pointer-events:none; z-index:0; border-radius:50%; filter:blur(120px); opacity:0.28; }
+    .ambient-1 { width:500px; height:500px; background:radial-gradient(circle,#22c55e40,transparent 70%); top:-150px; left:-150px; animation:drift1 18s ease-in-out infinite alternate; }
+    .ambient-2 { width:400px; height:400px; background:radial-gradient(circle,#a855f730,transparent 70%); bottom:-100px; right:-80px; animation:drift2 22s ease-in-out infinite alternate; }
+    @keyframes drift1 { to { transform:translate(60px,80px); } }
+    @keyframes drift2 { to { transform:translate(-40px,-60px); } }
+
+    /* ── NAVBAR ── */
+    .navbar {
+      position:sticky; top:0; z-index:100;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 40px;
+      background:rgba(9,9,15,0.85);
+      backdrop-filter:blur(20px);
+      border-bottom:1px solid var(--border);
+    }
+    .logo {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:1.5rem; font-weight:900; color:var(--green);
+      letter-spacing:-0.5px; display:flex; align-items:center; gap:8px;
+      text-decoration:none;
+    }
+    .logo span { color:var(--text); }
+    .nav-links { display:flex; align-items:center; gap:4px; }
+    .nav-links a {
+      padding:7px 16px; border-radius:8px;
+      color:var(--muted); font-size:0.88rem; font-weight:500;
+      text-decoration:none; transition:all 0.2s;
+    }
+    .nav-links a:hover { color:var(--text); background:var(--surface2); }
+    .nav-links a.active { color:var(--green); }
+    .nav-cta {
+      padding:9px 20px; border-radius:10px;
+      background:var(--green); color:#000;
+      font-weight:700; font-size:0.88rem;
+      border:none; cursor:pointer; transition:all 0.2s;
+      text-decoration:none;
+    }
+    .nav-cta:hover { background:#16a34a; }
+
+    /* ── MAIN LAYOUT ── */
+    main {
+      position:relative; z-index:1;
+      min-height:calc(100vh - 65px);
+      display:flex; align-items:center; justify-content:center;
+      padding:48px 20px;
+    }
+
+    /* ── QUIZ WRAPPER ── */
+    .quiz-wrapper {
+      width:100%; max-width:620px;
+    }
+
+    /* ── HEADER BLOCK ── */
+    .quiz-header {
+      text-align:center; margin-bottom:36px;
+      animation: fadeUp 0.5s ease both;
+    }
+    .quiz-badge {
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 14px; border-radius:100px;
+      border:1px solid var(--green-dim);
+      background:rgba(34,197,94,0.08);
+      color:var(--green); font-size:0.78rem; font-weight:600;
+      margin-bottom:18px;
+    }
+    .quiz-header h1 {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:2.4rem; font-weight:900;
+      letter-spacing:-1.5px; margin-bottom:10px;
+    }
+    .quiz-header p { color:var(--muted); font-size:0.95rem; line-height:1.6; }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ── PROGRESS BAR ── */
+    .progress-wrap { margin-bottom:28px; animation:fadeUp 0.5s ease 0.05s both; }
+    .progress-top {
+      display:flex; justify-content:space-between;
+      font-size:0.78rem; color:var(--muted); margin-bottom:8px;
+    }
+    .progress-top span:last-child { color:var(--green); font-weight:700; }
+    .prog-track {
+      height:6px; background:var(--surface2);
+      border-radius:100px; overflow:hidden;
+      border:1px solid var(--border);
+    }
+    .prog-fill {
+      height:100%; border-radius:100px;
+      background:linear-gradient(90deg,var(--green),#4ade80);
+      transition:width 0.5s cubic-bezier(0.34,1,0.64,1);
+      width:0%;
+    }
+
+    /* ── QUESTION CARD ── */
+    .question-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:20px; padding:32px;
+      animation:fadeUp 0.5s ease 0.1s both;
+      position:relative; overflow:hidden;
+    }
+    .question-card::before {
+      content:'';
+      position:absolute; top:0; left:0; right:0; height:2px;
+      background:linear-gradient(90deg,var(--green),var(--blue),var(--purple));
+    }
+
+    .question-slide { display:none; animation:slideIn 0.4s ease; }
+    .question-slide.active { display:block; }
+    @keyframes slideIn { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
+    @keyframes slideOut { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(-16px)} }
+
+    .q-number {
+      font-size:0.72rem; text-transform:uppercase;
+      letter-spacing:1.5px; color:var(--muted);
+      font-weight:700; margin-bottom:12px;
+    }
+    .q-emoji { font-size:2.2rem; margin-bottom:14px; }
+    .q-text {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:1.25rem; font-weight:800;
+      line-height:1.35; margin-bottom:24px;
+    }
+
+    /* ── OPTIONS ── */
+    .options { display:flex; flex-direction:column; gap:10px; }
+    .option-btn {
+      display:flex; align-items:center; gap:14px;
+      padding:15px 18px; border-radius:12px;
+      background:var(--surface2); border:1px solid var(--border);
+      color:var(--text); font-family:'Satoshi',sans-serif;
+      font-size:0.92rem; font-weight:500;
+      cursor:pointer; transition:all 0.22s; text-align:left;
+      width:100%;
+    }
+    .option-btn:hover {
+      border-color:rgba(34,197,94,0.4);
+      background:rgba(34,197,94,0.06);
+      transform:translateX(4px);
+    }
+    .option-btn.selected {
+      border-color:var(--green);
+      background:rgba(34,197,94,0.1);
+      color:var(--green);
+    }
+    .option-btn.selected .opt-radio { background:var(--green); border-color:var(--green); }
+    .option-btn.selected .opt-radio::after { opacity:1; }
+    .opt-radio {
+      width:18px; height:18px; border-radius:50%;
+      border:2px solid var(--border);
+      background:var(--surface); flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+      transition:all 0.2s; position:relative;
+    }
+    .opt-radio::after {
+      content:''; width:7px; height:7px;
+      border-radius:50%; background:#000;
+      opacity:0; transition:opacity 0.2s;
+    }
+    .opt-label { flex:1; }
+    .opt-score {
+      font-size:0.72rem; color:var(--muted);
+      font-weight:600; flex-shrink:0;
+    }
+
+    /* ── NAV BUTTONS ── */
+    .q-nav {
+      display:flex; gap:10px; margin-top:24px;
+    }
+    .btn-back {
+      padding:12px 20px; border-radius:10px;
+      background:none; border:1px solid var(--border);
+      color:var(--muted); font-family:'Satoshi',sans-serif;
+      font-size:0.9rem; cursor:pointer; transition:all 0.2s;
+    }
+    .btn-back:hover { color:var(--text); border-color:rgba(255,255,255,0.15); }
+    .btn-next {
+      flex:1; padding:12px 20px; border-radius:10px;
+      background:var(--green); color:#000;
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-weight:800; font-size:0.95rem;
+      border:none; cursor:pointer; transition:all 0.2s;
+    }
+    .btn-next:hover { background:#16a34a; transform:translateY(-1px); }
+    .btn-next:disabled {
+      background:var(--surface2); color:var(--muted);
+      cursor:not-allowed; transform:none;
+      border:1px solid var(--border);
+    }
+
+    /* ── RESULT SCREEN ── */
+    .result-screen {
+      display:none; text-align:center;
+      animation:fadeUp 0.6s ease both;
+    }
+    .result-screen.show { display:block; }
+
+    .result-icon { font-size:4rem; margin-bottom:20px; animation:bounceIn 0.6s ease; }
+    @keyframes bounceIn {
+      0%  { transform:scale(0); opacity:0; }
+      60% { transform:scale(1.15); opacity:1; }
+      100%{ transform:scale(1); }
+    }
+
+    .result-level {
+      display:inline-block; padding:6px 18px; border-radius:100px;
+      font-size:0.78rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:1px; margin-bottom:16px;
+    }
+    .level-beginner     { background:rgba(59,130,246,0.15); color:var(--blue);   border:1px solid rgba(59,130,246,0.3); }
+    .level-intermediate { background:rgba(245,158,11,0.15); color:var(--amber);  border:1px solid rgba(245,158,11,0.3); }
+    .level-advanced     { background:rgba(244,63,94,0.15);  color:var(--rose);   border:1px solid rgba(244,63,94,0.3); }
+
+    .result-title {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:2rem; font-weight:900;
+      letter-spacing:-1px; margin-bottom:10px;
+    }
+    .result-desc { color:var(--muted); font-size:0.92rem; line-height:1.7; max-width:420px; margin:0 auto 28px; }
+
+    /* Score ring */
+    .score-ring-wrap { display:flex; justify-content:center; margin-bottom:28px; }
+    .score-ring-wrap svg circle { transition:stroke-dashoffset 1.2s cubic-bezier(0.34,1,0.64,1); }
+    .score-ring-text {
+      position:absolute; inset:0;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+    }
+    .score-num {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:2rem; font-weight:900; line-height:1;
+    }
+    .score-label { font-size:0.7rem; color:var(--muted); margin-top:2px; }
+    .ring-container { position:relative; width:120px; height:120px; }
+
+    /* Traits */
+    .result-traits { display:flex; flex-direction:column; gap:10px; margin-bottom:28px; }
+    .trait-row {
+      display:flex; align-items:center; gap:14px;
+      padding:12px 16px; border-radius:12px;
+      background:var(--surface2); border:1px solid var(--border);
+      text-align:left;
+    }
+    .trait-icon { font-size:1.3rem; flex-shrink:0; }
+    .trait-text { font-size:0.87rem; line-height:1.4; }
+    .trait-text strong { color:var(--text); font-weight:600; display:block; margin-bottom:2px; }
+    .trait-text span { color:var(--muted); }
+
+    .result-actions { display:flex; gap:12px; justify-content:center; }
+    .btn-primary {
+      padding:13px 28px; border-radius:12px;
+      background:var(--green); color:#000;
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-weight:800; font-size:0.95rem;
+      border:none; cursor:pointer; transition:all 0.2s;
+    }
+    .btn-primary:hover { background:#16a34a; transform:translateY(-2px); box-shadow:0 8px 24px rgba(34,197,94,0.25); }
+    .btn-secondary {
+      padding:13px 24px; border-radius:12px;
+      background:none; border:1px solid var(--border);
+      color:var(--text); font-family:'Cabinet Grotesk',sans-serif;
+      font-weight:700; font-size:0.95rem;
+      cursor:pointer; transition:all 0.2s;
+    }
+    .btn-secondary:hover { background:var(--surface2); }
+
+    /* ── STEP INDICATORS ── */
+    .step-dots {
+      display:flex; justify-content:center; gap:8px; margin-top:20px;
+      animation:fadeUp 0.5s ease 0.15s both;
+    }
+    .step-dot {
+      width:7px; height:7px; border-radius:50%;
+      background:var(--border); transition:all 0.3s;
+    }
+    .step-dot.active { background:var(--green); width:20px; border-radius:3px; }
+    .step-dot.done   { background:var(--green-dim); }
+
+    /* ── ERROR ── */
+    .error-hint {
+      text-align:center; font-size:0.8rem; color:var(--rose);
+      margin-top:10px; display:none;
+    }
+    .error-hint.show { display:block; animation:shake 0.4s ease; }
+    @keyframes shake {
+      0%,100%{transform:translateX(0)}
+      25%{transform:translateX(-6px)}
+      75%{transform:translateX(6px)}
+    }
+
+    @media(max-width:600px) {
+      .navbar { padding:14px 20px; }
+      .nav-links { display:none; }
+      .question-card { padding:24px 18px; }
+      .quiz-header h1 { font-size:1.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="ambient ambient-1"></div>
+<div class="ambient ambient-2"></div>
+
+<!-- ── NAVBAR ── -->
+<header class="navbar">
+  <div class="logo">🌱 <span>OutGrow</span></div>
+  <nav class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="quiz.html" class="active">Quiz</a>
+    <a href="journal.html">Journal</a>
+    <a href="badges.html">Badges</a>
+    <a href="profile.html">Profile</a>
+  </nav>
+  <a href="dashboard.html" class="nav-cta">Dashboard →</a>
+</header>
+
+<main>
+<div class="quiz-wrapper">
+
+  <!-- ── HEADER ── -->
+  <div class="quiz-header">
+    <div class="quiz-badge">🧠 5-minute assessment</div>
+    <h1>Social Confidence Quiz</h1>
+    <p>Answer 5 honest questions. We'll personalise your daily habit plan based on where you actually are — not where you wish you were.</p>
+  </div>
+
+  <!-- ── PROGRESS ── -->
+  <div class="progress-wrap">
+    <div class="progress-top">
+      <span id="progressLabel">Question 1 of 5</span>
+      <span id="progressPct">0%</span>
+    </div>
+    <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+  </div>
+
+  <!-- ── QUESTION CARD ── -->
+  <div class="question-card" id="questionCard">
+
+    <!-- Q1 -->
+    <div class="question-slide active" id="q1">
+      <div class="q-number">Question 1 of 5</div>
+      <div class="q-emoji">😰</div>
+      <div class="q-text">When you walk into a room full of strangers, what's your first instinct?</div>
+      <div class="options">
+        <button class="option-btn" onclick="selectOption(1,'q1',0,this)">
+          <div class="opt-radio"></div>
+          <div class="opt-label">Find a corner and observe quietly</div>
+          <div class="opt-score">Most introverted</div>
+        </button>
+        <button class="option-btn" onclick="selectOption(1,'q1',1,this)">
+          <div class="opt-radio"></div>
+          <div class="opt-label">Wait for someone to approach me first</div>
+          <div class="opt-score">Somewhat shy</div>
+        </button>
+        <button class="option-btn" onclick="selectOption(1,'q1',2,this)">
+          <div class="opt-radio"></div>
+          <div class="opt-label">Introduce myself to a few people</div>
+          <div class="opt-score">Fairly confident</div>
+        </button>
+      </div>
+      <div class="q-nav">
+        <button class="btn-next" id="next1" onclick="goNext(1)" disabled>Next →</button>
+      </div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="question-slide" id="q2">
+      <div class="q-number">Question 2 of 5</div>
+      <div class="q-emoji">🗣️</div>
+      <div class="q-text">How do you feel about speaking up in group discussions?</div>
+      <div class="options">
+        <button class="option-btn" onclick="selectOption(2,'q2',0,this)">
+          <div class="opt-radio"></div>
+          <div class="opt-label">I rarely speak, even when I have something to say</div>
+          <div class="opt-score">Most introverted</div>
+        </button>
+        <button class="option-btn" onclick="selectOption(2,'q2',1,this)">
+          <div class="opt-radio"></div>
+          <div class="opt-label">I speak only when directly asked</div>
+          <div class="opt-score">Somewhat shy</div>
+        </button>
+        <button class="option-btn" onclick="selectOption(2,'q2',2,this)">
+          <div class="opt-radio"></div>
+          <div class="opt-label">I share my views when I feel confident about the topic</div>
+          <div class="opt-score">Fairly confident</div>
+        </button>
+      </div>
+      <div class="q-nav">
+        <button class="btn-back" onclick="goBack(2)">← Back</button>
+        <button class="btn-next" id="next2" onclick="goNext(2)" disabled>Next →</button>
+      </div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="question-slide" id="q3">
+      <div class="q-number">Question 3 of 5</div>
+      <div class="q-emoji">⚡</div>
+      <div class="q-text">After spending a few hours socialising with people, you usually feel...</div>
+      <div class="options">
+        <button class="option-btn" onclick="selectOption(3,'q3',0,this)">
+          <div class="opt-radio"></div>
+          <div class="opt-label">Completely drained — I need hours alone to recover</div>
+          <div class="opt-score">Most introverted</div>
+        </button>
+        <button class="option-btn" onclick="selectOption(3,'q3',1,this)">
+          <div class="opt-radio"></div>
+          <div class="opt-label">Neutral — it depends on the event and the people</div>
+          <div class="opt-score">Somewhat shy</div>
+        </button>
+        <button class="option-btn" onclick="selectOption(3,'q3',2,this)">
+          <div class="opt-radio"></div>
+          <div class="opt-label">Energised — I genuinely enjoyed connecting</div>
+          <div class="opt-score">Fairly confident</div>
+        </button>
+      </div>
+      <div class="q-nav">
+        <button class="btn-back" onclick="goBack(3)">← Back</button>
+        <button class="btn-next" id="next3" onclick="goNext(3)" disabled>Next →</button>
+      </div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="question-slide" id="q4">
+      <div class="q-number">Question 4 of 5</div>
+      <div class="q-emoji">👁️</div>
+      <div class="q-text">Making eye contact with someone you don't know feels...</div>
+      <div class="options">
+        <button class="option-btn" onclick="selectOption(4,'q4',0,this)">
+          <div class="opt-radio"></div>
+          <div class="opt-label">Very uncomfortable — I actively avoid it</div>
+          <div class="opt-score">Most introverted</div>
+        </button>
+        <button class="option-btn" onclick="selectOption(4,'q4',1,this)">
+          <div class="opt-radio"></div>
+          <div class="opt-label">Slightly awkward but I can manage it</div>
+          <div class="opt-score">Somewhat shy</div>
+        </button>
+        <button class="option-btn" onclick="selectOption(4,'q4',2,this)">
+          <div class="opt-radio"></div>
+          <div class="opt-label">Natural and comfortable for me</div>
+          <div class="opt-score">Fairly confident</div>
+        </button>
+      </div>
+      <div class="q-nav">
+        <button class="btn-back" onclick="goBack(4)">← Back</button>
+        <button class="btn-next" id="next4" onclick="goNext(4)" disabled>Next →</button>
+      </div>
+    </div>
+
+    <!-- Q5 -->
+    <div class="question-slide" id="q5">
+      <div class="q-number">Question 5 of 5</div>
+      <div class="q-emoji">🤝</div>
+      <div class="q-text">How often do you start conversations with someone you've never met?</div>
+      <div class="options">
+        <button class="option-btn" onclick="selectOption(5,'q5',0,this)">
+          <div class="opt-radio"></div>
+          <div class="opt-label">Almost never — I wait for them to start</div>
+          <div class="opt-score">Most introverted</div>
+        </button>
+        <button class="option-btn" onclick="selectOption(5,'q5',1,this)">
+          <div class="opt-radio"></div>
+          <div class="opt-label">Sometimes, if the situation feels right</div>
+          <div class="opt-score">Somewhat shy</div>
+        </button>
+        <button class="option-btn" onclick="selectOption(5,'q5',2,this)">
+          <div class="opt-radio"></div>
+          <div class="opt-label">Often — I enjoy meeting new people</div>
+          <div class="opt-score">Fairly confident</div>
+        </button>
+      </div>
+      <div class="q-nav">
+        <button class="btn-back" onclick="goBack(5)">← Back</button>
+        <button class="btn-next" id="next5" onclick="submitQuiz()" disabled>See My Results →</button>
+      </div>
+    </div>
+
+    <!-- ERROR HINT -->
+    <div class="error-hint" id="errorHint">Please select an answer to continue.</div>
+  </div>
+
+  <!-- ── STEP DOTS ── -->
+  <div class="step-dots" id="stepDots">
+    <div class="step-dot active" id="dot1"></div>
+    <div class="step-dot" id="dot2"></div>
+    <div class="step-dot" id="dot3"></div>
+    <div class="step-dot" id="dot4"></div>
+    <div class="step-dot" id="dot5"></div>
+  </div>
+
+  <!-- ── RESULT SCREEN ── -->
+  <div class="result-screen" id="resultScreen">
+
+    <div class="result-icon" id="resultIcon">🌱</div>
+    <div class="result-level" id="resultLevel">Beginner</div>
+    <div class="result-title" id="resultTitle">You're a Careful Observer</div>
+    <div class="result-desc"  id="resultDesc">You watch, listen, and think before engaging — and that's a strength. Your OutGrow journey starts with small, safe steps that build real confidence over time.</div>
+
+    <!-- Score ring -->
+    <div class="score-ring-wrap">
+      <div class="ring-container">
+        <svg width="120" height="120" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="50" fill="none" stroke="#18181f" stroke-width="10"/>
+          <circle id="scoreRing" cx="60" cy="60" r="50" fill="none"
+            stroke="#22c55e" stroke-width="10"
+            stroke-linecap="round"
+            stroke-dasharray="314.2"
+            stroke-dashoffset="314.2"
+            transform="rotate(-90 60 60)"/>
+        </svg>
+        <div class="score-ring-text">
+          <div class="score-num" id="scoreNum">0</div>
+          <div class="score-label">/ 10</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-traits" id="resultTraits"></div>
+
+    <div class="result-actions">
+      <button class="btn-primary" onclick="startJourney()">🚀 Start My Journey</button>
+      <button class="btn-secondary" onclick="retakeQuiz()">Retake Quiz</button>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<script>
+// ──────────────────────────────────────────────
+//  STATE
+// ──────────────────────────────────────────────
+const answers = {};       // { 1: 0|1|2, 2: 0|1|2, ... }
+let current = 1;
+const TOTAL = 5;
+
+// ──────────────────────────────────────────────
+//  SELECT OPTION
+// ──────────────────────────────────────────────
+function selectOption(qNum, qId, value, el) {
+  // deselect all in this question
+  document.querySelectorAll('#' + qId + ' .option-btn')
+    .forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  answers[qNum] = value;
+
+  // enable next button
+  const btn = document.getElementById('next' + qNum);
+  if (btn) btn.disabled = false;
+
+  // hide error
+  document.getElementById('errorHint').classList.remove('show');
+}
+
+// ──────────────────────────────────────────────
+//  NAVIGATION
+// ──────────────────────────────────────────────
+function goNext(qNum) {
+  if (answers[qNum] === undefined) {
+    document.getElementById('errorHint').classList.add('show');
+    return;
+  }
+  document.getElementById('q' + qNum).classList.remove('active');
+  updateDot(qNum, 'done');
+  current = qNum + 1;
+  document.getElementById('q' + current).classList.add('active');
+  updateDot(current, 'active');
+  updateProgress();
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+function goBack(qNum) {
+  document.getElementById('q' + qNum).classList.remove('active');
+  updateDot(qNum, '');
+  current = qNum - 1;
+  document.getElementById('q' + current).classList.add('active');
+  updateDot(current, 'active');
+  updateProgress();
+}
+
+function updateDot(qNum, state) {
+  const dot = document.getElementById('dot' + qNum);
+  dot.classList.remove('active','done');
+  if (state) dot.classList.add(state);
+}
+
+function updateProgress() {
+  const done = Object.keys(answers).length;
+  const pct  = Math.round((current - 1) / TOTAL * 100);
+  document.getElementById('progFill').style.width    = pct + '%';
+  document.getElementById('progressLabel').textContent = 'Question ' + current + ' of ' + TOTAL;
+  document.getElementById('progressPct').textContent   = pct + '%';
+}
+
+// ──────────────────────────────────────────────
+//  SUBMIT
+// ──────────────────────────────────────────────
+function submitQuiz() {
+  if (answers[5] === undefined) {
+    document.getElementById('errorHint').classList.add('show');
+    return;
+  }
+
+  // total score: 0–10
+  const score = Object.values(answers).reduce((a, b) => a + b, 0);
+  const level = score <= 3 ? 'advanced' : score <= 6 ? 'intermediate' : 'beginner';
+
+  // save to localStorage (also POST to /quiz when backend is ready)
+  localStorage.setItem('og_introLevel', level);
+  localStorage.setItem('og_quizScore', score);
+
+  // try backend
+  const body = Object.entries(answers).map(([k,v]) => `q${k}=${v}`).join('&');
+  fetch('../quiz', {
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body
+  }).catch(() => { /* backend not ready yet — localStorage already saved */ });
+
+  showResult(score, level);
+}
+
+// ──────────────────────────────────────────────
+//  RESULT
+// ──────────────────────────────────────────────
+const LEVELS = {
+  beginner: {
+    icon:'☀️',
+    label:'Beginner Level',
+    labelClass:'level-beginner',
+    title:'You\'re Already Opening Up',
+    desc:'You\'re more socially comfortable than you think! Your OutGrow plan will push you toward real connections — group challenges, public speaking, and leadership habits.',
+    ringColor:'#3b82f6',
+    traits:[
+      { icon:'💬', strong:'Verbal Confidence', text:'You\'re comfortable starting conversations and sharing opinions.' },
+      { icon:'👥', strong:'Group Engagement',  text:'You can participate in group settings without much hesitation.' },
+      { icon:'🎯', strong:'Your Focus',        text:'Advanced and expert challenges — lead discussions, present work, speak publicly.' },
+    ]
+  },
+  intermediate: {
+    icon:'🌤️',
+    label:'Intermediate Level',
+    labelClass:'level-intermediate',
+    title:'You\'re On The Edge of Growth',
+    desc:'You have moments of confidence and moments of hesitation. OutGrow will help you convert those hesitant moments into bold ones through consistent daily practice.',
+    ringColor:'#f59e0b',
+    traits:[
+      { icon:'⚖️', strong:'Mixed Confidence',  text:'Sometimes comfortable, sometimes not — depending on the situation.' },
+      { icon:'🔄', strong:'Consistency Gap',   text:'Your challenge is building confidence that doesn\'t depend on conditions.' },
+      { icon:'🎯', strong:'Your Focus',        text:'Intermediate and advanced habits — compliments, disagreeing politely, leading.' },
+    ]
+  },
+  advanced: {
+    icon:'🌱',
+    label:'Advanced Level',
+    labelClass:'level-advanced',
+    title:'You\'re a Careful Observer',
+    desc:'You watch, listen, and think before engaging — and that\'s a real strength. Your OutGrow journey starts with small, safe steps that build genuine confidence over time.',
+    ringColor:'#22c55e',
+    traits:[
+      { icon:'👁️', strong:'Deep Observer',    text:'You notice everything around you and process before reacting.' },
+      { icon:'🛡️', strong:'Self-Protective',  text:'You avoid risk to protect yourself from discomfort — OutGrow changes that gently.' },
+      { icon:'🎯', strong:'Your Focus',       text:'Beginner habits first — smiling, eye contact, small compliments, group chat replies.' },
+    ]
+  }
+};
+
+function showResult(score, level) {
+  // hide quiz card + dots
+  document.getElementById('questionCard').style.display = 'none';
+  document.getElementById('stepDots').style.display     = 'none';
+  document.getElementById('progFill').style.width       = '100%';
+  document.getElementById('progressLabel').textContent  = 'Quiz complete!';
+  document.getElementById('progressPct').textContent    = '100%';
+
+  const cfg = LEVELS[level];
+  document.getElementById('resultIcon').textContent    = cfg.icon;
+  document.getElementById('resultLevel').textContent   = cfg.label;
+  document.getElementById('resultLevel').className     = 'result-level ' + cfg.labelClass;
+  document.getElementById('resultTitle').textContent   = cfg.title;
+  document.getElementById('resultDesc').textContent    = cfg.desc;
+
+  // traits
+  const traitsEl = document.getElementById('resultTraits');
+  traitsEl.innerHTML = cfg.traits.map(t => `
+    <div class="trait-row">
+      <div class="trait-icon">${t.icon}</div>
+      <div class="trait-text">
+        <strong>${t.strong}</strong>
+        <span>${t.text}</span>
+      </div>
+    </div>
+  `).join('');
+
+  // show result
+  const rs = document.getElementById('resultScreen');
+  rs.classList.add('show');
+
+  // animate score ring
+  setTimeout(() => {
+    const pct = score / 10;
+    const offset = 314.2 - pct * 314.2;
+    const ring = document.getElementById('scoreRing');
+    ring.style.stroke = cfg.ringColor;
+    ring.style.strokeDashoffset = offset;
+    // count up score number
+    animateNum('scoreNum', score, 1200);
+  }, 300);
+}
+
+function animateNum(id, target, duration) {
+  const el = document.getElementById(id);
+  let start = null;
+  function step(ts) {
+    if (!start) start = ts;
+    const p = Math.min((ts - start) / duration, 1);
+    el.textContent = Math.round(p * target);
+    if (p < 1) requestAnimationFrame(step);
+    else el.textContent = target;
+  }
+  requestAnimationFrame(step);
+}
+
+function startJourney() {
+  window.location.href = 'dashboard.html';
+}
+
+function retakeQuiz() {
+  // reset everything
+  Object.keys(answers).forEach(k => delete answers[k]);
+  current = 1;
+  document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.question-slide').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.btn-next').forEach(b => b.disabled = true);
+  document.querySelectorAll('.step-dot').forEach(d => { d.classList.remove('active','done'); });
+  document.getElementById('q1').classList.add('active');
+  document.getElementById('dot1').classList.add('active');
+  document.getElementById('questionCard').style.display = 'block';
+  document.getElementById('stepDots').style.display     = 'flex';
+  document.getElementById('resultScreen').classList.remove('show');
+  document.getElementById('progFill').style.width       = '0%';
+  document.getElementById('progressLabel').textContent  = 'Question 1 of 5';
+  document.getElementById('progressPct').textContent    = '0%';
+}
+</script>
+</body>
+</html>

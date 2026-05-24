@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OutGrow — Social Confidence Habit Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&family=Satoshi:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── RESET & TOKENS ── */
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+    :root {
+      --bg:        #09090f;
+      --surface:   #111118;
+      --surface2:  #18181f;
+      --border:    rgba(255,255,255,0.07);
+      --green:     #22c55e;
+      --green-dim: #166534;
+      --glow:      rgba(34,197,94,0.18);
+      --amber:     #f59e0b;
+      --blue:      #3b82f6;
+      --rose:      #f43f5e;
+      --purple:    #a855f7;
+      --text:      #f0f0f4;
+      --muted:     #6b7280;
+      --card-h:    220px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Satoshi', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE GRAIN ── */
+    body::before {
+      content:'';
+      position:fixed; inset:0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events:none; z-index:0;
+    }
+
+    /* ── AMBIENT GLOW ── */
+    .ambient {
+      position:fixed; pointer-events:none; z-index:0;
+      border-radius:50%; filter:blur(120px); opacity:0.35;
+    }
+    .ambient-1 { width:600px; height:600px; background:radial-gradient(circle, #22c55e40, transparent 70%); top:-200px; left:-200px; animation: drift1 18s ease-in-out infinite alternate; }
+    .ambient-2 { width:500px; height:500px; background:radial-gradient(circle, #a855f730, transparent 70%); bottom:-150px; right:-100px; animation: drift2 22s ease-in-out infinite alternate; }
+    @keyframes drift1 { to { transform: translate(80px, 120px); } }
+    @keyframes drift2 { to { transform: translate(-60px, -80px); } }
+
+    /* ── NAVBAR ── */
+    .navbar {
+      position:sticky; top:0; z-index:100;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 40px;
+      background: rgba(9,9,15,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:1.5rem; font-weight:900;
+      color:var(--green);
+      letter-spacing:-0.5px;
+      display:flex; align-items:center; gap:8px;
+    }
+    .logo span { color:var(--text); }
+
+    .nav-links {
+      display:flex; align-items:center; gap:4px;
+    }
+    .nav-links a {
+      padding:7px 16px; border-radius:8px;
+      color:var(--muted); font-size:0.88rem; font-weight:500;
+      text-decoration:none; transition:all 0.2s;
+    }
+    .nav-links a:hover { color:var(--text); background:var(--surface2); }
+    .nav-links a.active { color:var(--green); }
+
+    .nav-cta {
+      padding:9px 20px; border-radius:10px;
+      background:var(--green); color:#000;
+      font-weight:700; font-size:0.88rem;
+      border:none; cursor:pointer;
+      transition:all 0.2s;
+      text-decoration:none;
+    }
+    .nav-cta:hover { background:#16a34a; transform:translateY(-1px); }
+
+    /* ── HERO ── */
+    .hero {
+      position:relative; z-index:1;
+      display:grid; grid-template-columns:1fr 1fr;
+      align-items:center; gap:60px;
+      padding:90px 40px 80px;
+      max-width:1200px; margin:0 auto;
+    }
+
+    .hero-badge {
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 14px; border-radius:100px;
+      border:1px solid var(--green-dim);
+      background:rgba(34,197,94,0.08);
+      color:var(--green); font-size:0.78rem; font-weight:600;
+      margin-bottom:24px;
+      animation: fadeUp 0.6s ease both;
+    }
+    .hero-badge .dot { width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .hero-left h1 {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:clamp(2.8rem, 5vw, 4.2rem);
+      font-weight:900; line-height:1.05;
+      letter-spacing:-2px;
+      animation: fadeUp 0.7s ease 0.1s both;
+    }
+    .hero-left h1 .accent { color:var(--green); }
+
+    .hero-sub {
+      margin-top:20px;
+      color:var(--muted); font-size:1.05rem; line-height:1.7;
+      max-width:420px;
+      animation: fadeUp 0.7s ease 0.2s both;
+    }
+
+    .hero-stats {
+      display:flex; gap:32px; margin-top:32px;
+      animation: fadeUp 0.7s ease 0.3s both;
+    }
+    .stat-item { text-align:left; }
+    .stat-num {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:1.8rem; font-weight:900; color:var(--text);
+    }
+    .stat-label { font-size:0.78rem; color:var(--muted); margin-top:2px; }
+
+    .hero-buttons {
+      display:flex; gap:12px; margin-top:36px;
+      animation: fadeUp 0.7s ease 0.4s both;
+    }
+    .btn-primary {
+      padding:14px 28px; border-radius:12px;
+      background:var(--green); color:#000;
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-weight:800; font-size:1rem;
+      border:none; cursor:pointer;
+      transition:all 0.2s;
+      display:flex; align-items:center; gap:8px;
+    }
+    .btn-primary:hover { background:#16a34a; transform:translateY(-2px); box-shadow:0 8px 24px rgba(34,197,94,0.3); }
+    .btn-secondary {
+      padding:14px 28px; border-radius:12px;
+      background:transparent; color:var(--text);
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-weight:700; font-size:1rem;
+      border:1px solid var(--border);
+      cursor:pointer; transition:all 0.2s;
+    }
+    .btn-secondary:hover { background:var(--surface2); border-color:rgba(255,255,255,0.15); }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ── HERO RIGHT — LIVE CARD ── */
+    .hero-right {
+      position:relative;
+      animation: fadeUp 0.8s ease 0.3s both;
+    }
+
+    .challenge-card {
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:20px; padding:28px;
+      position:relative; overflow:hidden;
+    }
+    .challenge-card::before {
+      content:'';
+      position:absolute; top:0; left:0; right:0; height:2px;
+      background:linear-gradient(90deg, var(--green), var(--blue), var(--purple));
+    }
+
+    .card-header {
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:20px;
+    }
+    .card-title {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:0.78rem; font-weight:700;
+      text-transform:uppercase; letter-spacing:1.5px;
+      color:var(--muted);
+    }
+    .card-badge {
+      padding:4px 10px; border-radius:100px;
+      background:rgba(34,197,94,0.12); color:var(--green);
+      font-size:0.72rem; font-weight:700;
+      border:1px solid rgba(34,197,94,0.2);
+    }
+
+    /* rotating challenges */
+    .challenge-display {
+      min-height:100px;
+    }
+    .challenge-item {
+      display:none;
+      animation: slideIn 0.5s ease;
+    }
+    .challenge-item.active { display:block; }
+    @keyframes slideIn { from{opacity:0;transform:translateX(12px)} to{opacity:1;transform:translateX(0)} }
+
+    .challenge-emoji { font-size:2.4rem; margin-bottom:12px; }
+    .challenge-text {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:1.2rem; font-weight:700; margin-bottom:6px;
+    }
+    .challenge-desc { color:var(--muted); font-size:0.88rem; line-height:1.5; }
+
+    .challenge-meta {
+      display:flex; align-items:center; gap:10px; margin-top:16px;
+    }
+    .xp-chip {
+      padding:5px 12px; border-radius:8px;
+      background:rgba(245,158,11,0.12); color:var(--amber);
+      font-size:0.8rem; font-weight:700;
+      border:1px solid rgba(245,158,11,0.2);
+    }
+    .diff-chip {
+      padding:5px 12px; border-radius:8px;
+      font-size:0.8rem; font-weight:600;
+    }
+    .diff-beginner    { background:rgba(59,130,246,0.12); color:var(--blue); border:1px solid rgba(59,130,246,0.2); }
+    .diff-intermediate{ background:rgba(245,158,11,0.12); color:var(--amber); border:1px solid rgba(245,158,11,0.2); }
+    .diff-advanced    { background:rgba(244,63,94,0.12);  color:var(--rose); border:1px solid rgba(244,63,94,0.2); }
+
+    .card-actions { display:flex; gap:10px; margin-top:20px; }
+    .btn-done {
+      flex:1; padding:12px; border-radius:10px;
+      background:var(--green); color:#000;
+      font-weight:800; font-size:0.9rem;
+      border:none; cursor:pointer; transition:all 0.2s;
+      font-family:'Cabinet Grotesk',sans-serif;
+    }
+    .btn-done:hover { background:#16a34a; }
+    .btn-done.completed {
+      background:rgba(34,197,94,0.1); color:var(--green);
+      border:1px solid rgba(34,197,94,0.3);
+      cursor:default;
+    }
+    .btn-next {
+      padding:12px 16px; border-radius:10px;
+      background:var(--surface2); color:var(--muted);
+      font-weight:600; font-size:0.9rem;
+      border:1px solid var(--border); cursor:pointer; transition:all 0.2s;
+    }
+    .btn-next:hover { color:var(--text); border-color:rgba(255,255,255,0.2); }
+
+    /* progress dots */
+    .challenge-dots {
+      display:flex; gap:6px; margin-top:16px; justify-content:center;
+    }
+    .dot-indicator {
+      width:6px; height:6px; border-radius:50%;
+      background:var(--border); transition:all 0.3s;
+    }
+    .dot-indicator.active { background:var(--green); width:18px; border-radius:3px; }
+    .dot-indicator.done   { background:var(--green-dim); }
+
+    /* XP toast */
+    .xp-toast {
+      position:fixed; bottom:32px; right:32px;
+      background:var(--surface);
+      border:1px solid rgba(34,197,94,0.3);
+      border-radius:14px; padding:14px 20px;
+      display:flex; align-items:center; gap:12px;
+      transform:translateY(80px); opacity:0;
+      transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+      z-index:999;
+    }
+    .xp-toast.show { transform:translateY(0); opacity:1; }
+    .xp-toast-icon { font-size:1.4rem; }
+    .xp-toast-text { font-size:0.9rem; }
+    .xp-toast-text strong { color:var(--green); font-family:'Cabinet Grotesk',sans-serif; font-size:1rem; }
+
+    /* streak mini */
+    .streak-bar {
+      display:flex; align-items:center; gap:8px;
+      margin-top:20px; padding:14px;
+      background:var(--surface2); border-radius:12px;
+      border:1px solid var(--border);
+    }
+    .streak-days { display:flex; gap:4px; flex:1; }
+    .streak-day {
+      flex:1; height:32px; border-radius:6px;
+      background:var(--border); position:relative;
+      transition:all 0.3s;
+    }
+    .streak-day.done { background:rgba(34,197,94,0.4); }
+    .streak-day.today { background:var(--green); box-shadow:0 0 8px rgba(34,197,94,0.5); }
+    .streak-label { font-size:0.75rem; color:var(--muted); white-space:nowrap; }
+
+    /* ── FEATURES STRIP ── */
+    .features {
+      position:relative; z-index:1;
+      padding:0 40px 80px;
+      max-width:1200px; margin:0 auto;
+    }
+    .section-label {
+      font-size:0.78rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:2px; color:var(--green); margin-bottom:12px;
+    }
+    .section-title {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:2.2rem; font-weight:900; letter-spacing:-1px;
+      margin-bottom:48px;
+    }
+
+    .features-grid {
+      display:grid; grid-template-columns:repeat(3,1fr); gap:16px;
+    }
+    .feature-card {
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:16px; padding:24px;
+      transition:all 0.3s; cursor:default;
+      position:relative; overflow:hidden;
+    }
+    .feature-card::after {
+      content:'';
+      position:absolute; inset:0; border-radius:16px;
+      background:linear-gradient(135deg, transparent 60%, var(--glow));
+      opacity:0; transition:opacity 0.3s;
+    }
+    .feature-card:hover { border-color:rgba(34,197,94,0.25); transform:translateY(-4px); }
+    .feature-card:hover::after { opacity:1; }
+
+    .feature-icon {
+      width:44px; height:44px; border-radius:12px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.3rem; margin-bottom:16px;
+    }
+    .fi-green  { background:rgba(34,197,94,0.12); }
+    .fi-amber  { background:rgba(245,158,11,0.12); }
+    .fi-blue   { background:rgba(59,130,246,0.12); }
+    .fi-purple { background:rgba(168,85,247,0.12); }
+    .fi-rose   { background:rgba(244,63,94,0.12); }
+    .fi-cyan   { background:rgba(6,182,212,0.12); }
+
+    .feature-title {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:1rem; font-weight:800; margin-bottom:8px;
+    }
+    .feature-desc { font-size:0.85rem; color:var(--muted); line-height:1.6; }
+
+    /* ── LIVE PROGRESS SECTION ── */
+    .progress-section {
+      position:relative; z-index:1;
+      padding:0 40px 80px;
+      max-width:1200px; margin:0 auto;
+    }
+    .progress-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+
+    .progress-card {
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:16px; padding:24px;
+    }
+    .progress-card h3 {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:0.85rem; font-weight:700;
+      text-transform:uppercase; letter-spacing:1px;
+      color:var(--muted); margin-bottom:20px;
+    }
+
+    /* XP bar */
+    .xp-display { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; }
+    .xp-display .current {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:2.2rem; font-weight:900; color:var(--text);
+    }
+    .xp-display .max { color:var(--muted); font-size:0.88rem; }
+    .bar-track {
+      height:10px; background:var(--surface2);
+      border-radius:100px; overflow:hidden;
+      border:1px solid var(--border);
+    }
+    .bar-fill {
+      height:100%; border-radius:100px;
+      background:linear-gradient(90deg, var(--green), #4ade80);
+      transition:width 1.5s cubic-bezier(0.34,1,0.64,1);
+    }
+    .bar-label { display:flex; justify-content:space-between; margin-top:6px; font-size:0.75rem; color:var(--muted); }
+
+    /* comfort ring */
+    .ring-wrap { display:flex; align-items:center; gap:24px; }
+    .ring-svg { flex-shrink:0; }
+    .ring-svg circle { transition:stroke-dashoffset 1.5s cubic-bezier(0.34,1,0.64,1); }
+    .ring-info { }
+    .ring-score {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:2rem; font-weight:900;
+    }
+    .ring-sublabel { font-size:0.8rem; color:var(--muted); margin-top:4px; }
+
+    /* badge preview */
+    .badges-preview {
+      display:flex; gap:10px; flex-wrap:wrap; margin-top:4px;
+    }
+    .badge-item {
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+      padding:12px; border-radius:12px;
+      background:var(--surface2); border:1px solid var(--border);
+      font-size:0.72rem; color:var(--muted); text-align:center;
+      min-width:64px; transition:all 0.2s;
+    }
+    .badge-item .badge-emoji { font-size:1.6rem; }
+    .badge-item.earned {
+      border-color:rgba(245,158,11,0.3);
+      background:rgba(245,158,11,0.05); color:var(--amber);
+    }
+    .badge-item.locked { opacity:0.4; filter:grayscale(1); }
+
+    /* ── CTA BANNER ── */
+    .cta-banner {
+      position:relative; z-index:1;
+      margin:0 40px 80px;
+      max-width:1120px; margin-left:auto; margin-right:auto;
+      border-radius:24px; padding:60px;
+      background:linear-gradient(135deg, rgba(34,197,94,0.12), rgba(168,85,247,0.08));
+      border:1px solid rgba(34,197,94,0.15);
+      text-align:center; overflow:hidden;
+    }
+    .cta-banner::before {
+      content:'';
+      position:absolute; width:400px; height:400px;
+      background:radial-gradient(circle, rgba(34,197,94,0.15), transparent 70%);
+      top:-100px; left:50%; transform:translateX(-50%);
+      pointer-events:none;
+    }
+    .cta-banner h2 {
+      font-family:'Cabinet Grotesk',sans-serif;
+      font-size:2.4rem; font-weight:900; letter-spacing:-1px;
+      margin-bottom:16px; position:relative;
+    }
+    .cta-banner p { color:var(--muted); font-size:1rem; margin-bottom:32px; position:relative; }
+    .cta-buttons { display:flex; gap:12px; justify-content:center; position:relative; }
+
+    /* ── FOOTER ── */
+    footer {
+      position:relative; z-index:1;
+      border-top:1px solid var(--border);
+      padding:24px 40px;
+      display:flex; align-items:center; justify-content:space-between;
+      color:var(--muted); font-size:0.82rem;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media(max-width:900px) {
+      .hero { grid-template-columns:1fr; padding:60px 20px; }
+      .features-grid { grid-template-columns:1fr 1fr; }
+      .progress-grid { grid-template-columns:1fr; }
+      .navbar { padding:14px 20px; }
+      .nav-links { display:none; }
+      .cta-banner { padding:40px 24px; margin:0 20px 60px; }
+      .features,.progress-section { padding:0 20px 60px; }
+    }
+    @media(max-width:600px) {
+      .features-grid { grid-template-columns:1fr; }
+      .hero-stats { gap:20px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="ambient ambient-1"></div>
+<div class="ambient ambient-2"></div>
+
+<!-- ── NAVBAR ── -->
+<header class="navbar">
+  <div class="logo">🌱 <span>OutGrow</span></div>
+  <nav class="nav-links">
+    <a href="index.html" class="active">Home</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="quiz.html">Quiz</a>
+    <a href="journal.html">Journal</a>
+    <a href="badges.html">Badges</a>
+    <a href="profile.html">Profile</a>
+  </nav>
+  <a href="dashboard.html" class="nav-cta">Open App →</a>
+</header>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-badge">
+      <span class="dot"></span>
+      Live — 127 habits completed today
+    </div>
+
+    <h1>Small Steps.<br><span class="accent">Real Change.</span></h1>
+
+    <p class="hero-sub">
+      Build genuine social confidence through daily micro-challenges,
+      streaks, XP, and a reflection journal — designed for introverts.
+    </p>
+
+    <div class="hero-stats">
+      <div class="stat-item">
+        <div class="stat-num" id="counterHabits">0</div>
+        <div class="stat-label">Habits in library</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" id="counterBadges">0</div>
+        <div class="stat-label">Badges to earn</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" id="counterXP">0</div>
+        <div class="stat-label">Max XP per day</div>
+      </div>
+    </div>
+
+    <div class="hero-buttons">
+      <button class="btn-primary" onclick="window.location.href='quiz.html'">
+        🚀 Start My Journey
+      </button>
+      <button class="btn-secondary" onclick="window.location.href='dashboard.html'">
+        View Dashboard
+      </button>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <!-- Live challenge rotator -->
+    <div class="challenge-card">
+      <div class="card-header">
+        <div class="card-title">Today's Challenges</div>
+        <div class="card-badge" id="challengeCount">1 / 3</div>
+      </div>
+
+      <div class="challenge-display">
+        <div class="challenge-item active" data-xp="10" data-diff="beginner">
+          <div class="challenge-emoji">😊</div>
+          <div class="challenge-text">Talk in a mirror for a minute</div>
+          <div class="challenge-desc">Be Happy & Proud of yourself.</div>
+          <div class="challenge-meta">
+            <span class="xp-chip">+10 XP</span>
+            <span class="diff-chip diff-beginner">Beginner</span>
+          </div>
+        </div>
+        <div class="challenge-item" data-xp="20" data-diff="intermediate">
+          <div class="challenge-emoji">💬</div>
+          <div class="challenge-text">Compliment someone aloud</div>
+          <div class="challenge-desc">Give a sincere, specific compliment to someone in person today.</div>
+          <div class="challenge-meta">
+            <span class="xp-chip">+20 XP</span>
+            <span class="diff-chip diff-intermediate">Intermediate</span>
+          </div>
+        </div>
+        <div class="challenge-item" data-xp="35" data-diff="advanced">
+          <div class="challenge-emoji">🗣️</div>
+          <div class="challenge-text">Speak up in a group</div>
+          <div class="challenge-desc">Share at least one idea in a group discussion, class, or meeting.</div>
+          <div class="challenge-meta">
+            <span class="xp-chip">+35 XP</span>
+            <span class="diff-chip diff-advanced">Advanced</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-actions">
+        <button class="btn-done" id="doneBtn" onclick="markDone()">✓ Mark as Done</button>
+        <button class="btn-next" onclick="nextChallenge()">Next →</button>
+      </div>
+
+      <div class="challenge-dots">
+        <div class="dot-indicator active" id="dot0"></div>
+        <div class="dot-indicator" id="dot1"></div>
+        <div class="dot-indicator" id="dot2"></div>
+      </div>
+
+      <!-- Week streak mini view -->
+      <div class="streak-bar">
+        <div class="streak-days" id="streakDays"></div>
+        <div class="streak-label" id="streakLabel">🔥 0-day streak</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURES ── -->
+<section class="features">
+  <div class="section-label">Why OutGrow</div>
+  <div class="section-title">Everything you need to grow.</div>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon fi-green">🎯</div>
+      <div class="feature-title">Daily Habit Challenges</div>
+      <div class="feature-desc">3 personalized challenges every day based on your introversion level — beginner to expert, always pushing gently.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-amber">⚡</div>
+      <div class="feature-title">XP & Comfort Score</div>
+      <div class="feature-desc">Earn XP for every completed challenge. Watch your Comfort Score rise as you consistently step outside your comfort zone.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-blue">🔥</div>
+      <div class="feature-title">Streak Tracking</div>
+      <div class="feature-desc">Build momentum with daily streaks. Missing a day resets your streak — consistency is the whole game.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-purple">🏅</div>
+      <div class="feature-title">10 Badges to Unlock</div>
+      <div class="feature-desc">From First Step to Public Voice — badges reward specific milestones and keep you motivated to explore new challenge types.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-rose">📖</div>
+      <div class="feature-title">Reflection Journal</div>
+      <div class="feature-desc">Write how each challenge felt. Your journal becomes a personal timeline of courage — one entry at a time.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-cyan">📊</div>
+      <div class="feature-title">Activity Heatmap</div>
+      <div class="feature-desc">60-day visual heatmap shows your consistency at a glance. Green means growth. White means a missed opportunity.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PROGRESS PREVIEW ── -->
+<section class="progress-section">
+  <div class="section-label">Your Growth Dashboard</div>
+  <div class="section-title">Track everything, visually.</div>
+
+  <div class="progress-grid">
+    <!-- XP progress -->
+    <div class="progress-card">
+      <h3>XP Progress</h3>
+      <div class="xp-display">
+        <div class="current" id="liveXP">0</div>
+        <div class="max">/ 500 XP</div>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill" id="xpBar" style="width:0%"></div>
+      </div>
+      <div class="bar-label">
+        <span>Level 1</span>
+        <span id="xpPercent">0%</span>
+      </div>
+    </div>
+
+    <!-- Comfort ring -->
+    <div class="progress-card">
+      <h3>Comfort Score</h3>
+      <div class="ring-wrap">
+        <svg class="ring-svg" width="100" height="100" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="40" fill="none" stroke="#18181f" stroke-width="10"/>
+          <circle id="ringCircle" cx="50" cy="50" r="40" fill="none"
+            stroke="#22c55e" stroke-width="10"
+            stroke-linecap="round"
+            stroke-dasharray="251.2"
+            stroke-dashoffset="251.2"
+            transform="rotate(-90 50 50)"/>
+        </svg>
+        <div class="ring-info">
+          <div class="ring-score" id="comfortScore">0</div>
+          <div class="ring-sublabel">Comfort Score</div>
+          <div class="ring-sublabel" style="margin-top:8px; color:var(--green)">+5 per habit done</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Badges -->
+    <div class="progress-card" style="grid-column:1/-1">
+      <h3>Badges</h3>
+      <div class="badges-preview" id="badgesGrid"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<section class="cta-banner">
+  <h2>Ready to OutGrow yourself?</h2>
+  <p>Take the 5-question quiz. Get your personalized habit plan. Start today.</p>
+  <div class="cta-buttons">
+    <button class="btn-primary" onclick="window.location.href='quiz.html'">
+      🌱 Take the Quiz
+    </button>
+    <button class="btn-secondary" onclick="window.location.href='dashboard.html'">
+      Skip to Dashboard
+    </button>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div>🌱 OutGrow — Social Confidence Habit Tracker</div>
+  <div>Built with Core Java · MySQL · HTML/CSS/JS</div>
+</footer>
+
+<!-- XP Toast -->
+<div class="xp-toast" id="xpToast">
+  <div class="xp-toast-icon">⚡</div>
+  <div class="xp-toast-text">
+    <strong id="toastXP">+10 XP</strong> earned!<br>
+    <span id="toastMsg" style="color:var(--muted);font-size:0.8rem">Keep going 🔥</span>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let currentChallenge = 0;
+let totalXP = 0;
+let comfortScore = 0;
+let streakCount = parseInt(localStorage.getItem('og_streak') || '0');
+let completedToday = JSON.parse(localStorage.getItem('og_completed') || '[]');
+let lastDate = localStorage.getItem('og_lastDate') || '';
+
+const today = new Date().toDateString();
+if (lastDate !== today) {
+  completedToday = [];
+  localStorage.setItem('og_completed', '[]');
+  localStorage.setItem('og_lastDate', today);
+}
+
+totalXP      = parseInt(localStorage.getItem('og_xp') || '0');
+comfortScore = parseInt(localStorage.getItem('og_comfort') || '0');
+
+// ── CHALLENGES ──
+const challenges = [
+  { emoji:'😊', title:'Smile at a stranger', desc:"Make eye contact and smile at one person you don't know today.", xp:10, diff:'beginner' },
+  { emoji:'💬', title:'Compliment someone aloud', desc:'Give a sincere, specific compliment to someone in person today.', xp:20, diff:'intermediate' },
+  { emoji:'🗣️', title:'Speak up in a group', desc:'Share at least one idea in a group discussion, class, or meeting.', xp:35, diff:'advanced' },
+];
+
+const badges = [
+  { emoji:'🌱', name:'First Step',    earned: totalXP >= 10  },
+  { emoji:'🗣️', name:'Spoke First',  earned: totalXP >= 20  },
+  { emoji:'🔥', name:'Week Warrior', earned: streakCount >= 7 },
+  { emoji:'👥', name:'Group Joiner', earned: totalXP >= 35  },
+  { emoji:'💪', name:'Comfort Crush',earned: comfortScore >= 100 },
+];
+
+// ── INIT ──
+function init() {
+  renderStreak();
+  renderBadges();
+  animateCounters();
+  animateBars();
+  updateDoneBtn();
+  document.getElementById('liveXP').textContent = totalXP;
+  document.getElementById('comfortScore').textContent = comfortScore;
+}
+
+// ── COUNTER ANIMATION ──
+function animateCounters() {
+  animateNum('counterHabits', 15, 1200);
+  animateNum('counterBadges', 10, 1400);
+  animateNum('counterXP',    150, 1600);
+}
+function animateNum(id, target, duration) {
+  const el = document.getElementById(id);
+  let start = null;
+  function step(ts) {
+    if (!start) start = ts;
+    const p = Math.min((ts - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(ease * target);
+    if (p < 1) requestAnimationFrame(step);
+    else el.textContent = target;
+  }
+  requestAnimationFrame(step);
+}
+
+// ── BARS ──
+function animateBars() {
+  setTimeout(() => {
+    const pct = Math.min((totalXP / 500) * 100, 100);
+    document.getElementById('xpBar').style.width = pct + '%';
+    document.getElementById('xpPercent').textContent = Math.round(pct) + '%';
+
+    // ring
+    const circumference = 251.2;
+    const offset = circumference - (comfortScore / 500) * circumference;
+    document.getElementById('ringCircle').style.strokeDashoffset = offset;
+  }, 400);
+}
+
+// ── STREAK ──
+function renderStreak() {
+  const container = document.getElementById('streakDays');
+  const label     = document.getElementById('streakLabel');
+  container.innerHTML = '';
+  const days = ['M','T','W','T','F','S','S'];
+  const todayIdx = (new Date().getDay() + 6) % 7; // Mon=0
+
+  days.forEach((d, i) => {
+    const div = document.createElement('div');
+    div.className = 'streak-day';
+    if (i < todayIdx) div.classList.add('done');
+    if (i === todayIdx && completedToday.length > 0) div.classList.add('today');
+    div.title = d;
+    container.appendChild(div);
+  });
+
+  label.textContent = '🔥 ' + streakCount + '-day streak';
+}
+
+// ── CHALLENGE NAV ──
+function nextChallenge() {
+  document.querySelectorAll('.challenge-item')[currentChallenge].classList.remove('active');
+  document.getElementById('dot' + currentChallenge).classList.remove('active');
+  currentChallenge = (currentChallenge + 1) % challenges.length;
+  document.querySelectorAll('.challenge-item')[currentChallenge].classList.add('active');
+  document.getElementById('dot' + currentChallenge).classList.add('active');
+  document.getElementById('challengeCount').textContent = (currentChallenge + 1) + ' / ' + challenges.length;
+  updateDoneBtn();
+}
+
+function updateDoneBtn() {
+  const btn = document.getElementById('doneBtn');
+  if (completedToday.includes(currentChallenge)) {
+    btn.textContent = '✓ Completed!';
+    btn.className = 'btn-done completed';
+  } else {
+    btn.textContent = '✓ Mark as Done';
+    btn.className = 'btn-done';
+  }
+}
+
+function markDone() {
+  if (completedToday.includes(currentChallenge)) return;
+
+  const ch = challenges[currentChallenge];
+  completedToday.push(currentChallenge);
+  localStorage.setItem('og_completed', JSON.stringify(completedToday));
+
+  // award XP
+  totalXP += ch.xp;
+  comfortScore = Math.min(comfortScore + Math.max(1, Math.floor(ch.xp / 5)), 500);
+  localStorage.setItem('og_xp', totalXP);
+  localStorage.setItem('og_comfort', comfortScore);
+
+  // streak
+  if (completedToday.length === 1) {
+    streakCount++;
+    localStorage.setItem('og_streak', streakCount);
+    localStorage.setItem('og_lastDate', today);
+  }
+
+  // animate numbers
+  document.getElementById('liveXP').textContent = totalXP;
+  document.getElementById('comfortScore').textContent = comfortScore;
+  animateBars();
+  renderStreak();
+  renderBadges();
+  updateDoneBtn();
+  showToast(ch.xp);
+
+  // auto next after 1.2s
+  setTimeout(() => {
+    if (currentChallenge < challenges.length - 1) nextChallenge();
+  }, 1200);
+}
+
+// ── TOAST ──
+function showToast(xp) {
+  const toast = document.getElementById('xpToast');
+  document.getElementById('toastXP').textContent = '+' + xp + ' XP';
+  document.getElementById('toastMsg').textContent =
+    completedToday.length === challenges.length ? 'All done today! 🏆' : '🔥 Keep it up!';
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// ── BADGES ──
+function renderBadges() {
+  const earnedBadges = [
+    { emoji:'🌱', name:'First Step',     earned: totalXP >= 10 },
+    { emoji:'🗣️', name:'Spoke First',   earned: completedToday.length > 0 },
+    { emoji:'🔥', name:'Week Warrior',  earned: streakCount >= 7 },
+    { emoji:'👥', name:'Group Joiner',  earned: totalXP >= 35 },
+    { emoji:'💪', name:'Comfort Crush', earned: comfortScore >= 100 },
+    { emoji:'💬', name:'Digital Brave', earned: false },
+    { emoji:'👁️', name:'Eye Contact',   earned: false },
+    { emoji:'⚡', name:'On a Roll',     earned: completedToday.length >= 3 },
+    { emoji:'🏆', name:'Veteran',       earned: streakCount >= 30 },
+    { emoji:'🎤', name:'Public Voice',  earned: totalXP >= 100 },
+  ];
+
+  const grid = document.getElementById('badgesGrid');
+  grid.innerHTML = '';
+  earnedBadges.forEach(b => {
+    const div = document.createElement('div');
+    div.className = 'badge-item ' + (b.earned ? 'earned' : 'locked');
+    div.innerHTML = `<span class="badge-emoji">${b.emoji}</span><span>${b.name}</span>`;
+    div.title = b.earned ? 'Earned!' : 'Locked';
+    grid.appendChild(div);
+  });
+}
+
+init();
+</script>
+</body>
+</html>
